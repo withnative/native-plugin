@@ -1,0 +1,36 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+name: Validate Native plugin
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate repository contracts
+        run: python3 scripts/validate.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/mcp-stdio/package-lock.json
+      - name: Install stdio adapter dependencies
+        run: npm ci
+        working-directory: packages/mcp-stdio
+      - name: Check stdio adapter
+        run: npm run check
+        working-directory: packages/mcp-stdio
