@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      # Two rapid pushes would both see "no tag" and race to create it.
+      group: cut-release-tag
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: Create the release tag if it does not already exist
@@ -53,9 +57,21 @@ jobs:
 
           # Published tags are immutable: a moved tag silently changes what
           # already-installed clients resolve. Never force-update, only create.
-          # Note: no --exit-code here. The exit status of a pipeline is the last
-          # command's, so `git ls-remote ... | cut` would always report success.
-          existing="$(git ls-remote --tags origin "refs/tags/$tag^{}" | cut -f1)"
+          # Query both the tag ref and its peeled form: a remote advertises
+          # refs/tags/<x>^{} only for ANNOTATED tags, so probing the peeled ref
+          # alone would miss a lightweight tag and wrongly try to create it.
+          # Assign before piping -- a pipeline's exit status is the last
+          # command's, so `ls-remote | cut` would mask a failed query and make
+          # an unreachable remote look like "tag absent".
+          if ! refs="$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}")"; then
+            echo "::error::could not query tags on origin; refusing to guess whether $tag exists."
+            exit 1
+          fi
+          existing="$(printf '%s\n' "$refs" | awk -v r="refs/tags/$tag^{}" '$2 == r {print $1}')"
+          if [ -z "$existing" ]; then
+            existing="$(printf '%s\n' "$refs" | awk -v r="refs/tags/$tag" '$2 == r {print $1}')"
+          fi
+
           if [ -n "$existing" ]; then
             if [ "$existing" = "$COMMIT" ]; then
               echo "$tag already points at $COMMIT; nothing to do."
