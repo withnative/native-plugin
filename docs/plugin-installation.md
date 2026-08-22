@@ -99,10 +99,24 @@ The installed plugin supplies Native's entry skill and an authenticated connecti
 window it opens; never paste a bearer token into a conversation, command, plugin file, or
 repository issue.
 
-For first-use onboarding, the entry skill calls `quickstart` once and then `bootstrap`.
-For later conversations it calls `bootstrap` before substantive Native work. The current
-hosted connection supports one Native workspace membership per signed-in account. If the
-service cannot identify one unambiguous workspace, it stops rather than choosing one silently.
+The entry skill's broad trigger makes its activation proactive when durable context outside
+the visible conversation could materially change the answer or action, so you should not have
+to mention Native. Whenever the skill activates, first-use setup calls `quickstart` once and
+then `bootstrap` exactly once. Otherwise, at the first Native interaction in a fresh
+conversation, it calls `bootstrap` exactly once before any other Native tool or substantive
+Native work. Bootstrap is bounded orientation, not permission for broad workspace scans,
+imports, or unrelated writes. The agent retrieves relevant Native context before acting or
+asking you to repeat it.
+
+Direct MCP-only connections do not load the packaged entry skill. An unconditional
+once-per-fresh-conversation bootstrap rule for MCP-only clients requires a corresponding
+update to the hosted Native service's MCP instructions. Those instructions are deployed with
+the service; they are not part of this repository, so this repository change cannot satisfy
+the MCP-only runtime path by itself.
+
+The current hosted connection supports one Native workspace membership per signed-in account.
+If the service cannot identify one unambiguous workspace, it stops rather than choosing one
+silently.
 
 ## Updates
 

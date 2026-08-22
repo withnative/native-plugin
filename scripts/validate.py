@@ -21,11 +21,12 @@ ADAPTER = ROOT / "packages" / "mcp-stdio"
 ENDPOINT = "https://plugin.withnative.ai/mcp"
 REPOSITORY = "https://github.com/withnative/native-plugin"
 DESCRIPTION = (
-    "Recover context and continue durable work through Native's hosted MCP service."
+    "Proactively recover relevant durable context and continue work through Native's "
+    "hosted MCP service."
 )
 DEFAULT_PROMPT = (
-    "Use $enter to recover the relevant context in my Native workspace and help me "
-    "continue this work."
+    "Use $enter to check Native for context beyond this conversation, recover what "
+    "matters, and help me continue this work."
 )
 MPL_2_0_SHA256 = "3f3d9e0024b1921b067d6f7f88deb4a60cbe7a78e76c64e3f1d7fc3b779b9d04"
 MPL_NOTICE = (
@@ -93,7 +94,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.1",
+        "version": "0.1.2",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -114,13 +115,13 @@ def validate_manifests() -> None:
     require(set(codex) == set(common) | {"interface"}, "Codex manifest contains unexpected fields")
     require(interface.get("displayName") == "Native", "Codex display name must be Native")
     require(
-        interface.get("shortDescription") == "Recover context and continue durable work.",
+        interface.get("shortDescription") == "Proactively recover relevant durable context.",
         "Codex short description drifted",
     )
     require(
         interface.get("longDescription")
-        == "Connect to Native's hosted MCP service to recover durable workspace context, "
-        "continue work, and record requested updates.",
+        == "Connect to Native's hosted MCP service to check for context beyond the visible "
+        "conversation, recover what matters, continue work, and record requested updates.",
         "Codex long description drifted",
     )
     require(interface.get("developerName") == "Native", "Codex developer must be Native")
@@ -146,15 +147,43 @@ def validate_skill() -> None:
     header = match.group("header")
     body = match.group("body")
     require(re.search(r"^name: enter$", header, re.MULTILINE) is not None, "Skill name drifted")
-    for phrase in ("save this for later", "React Native", "another system"):
-        require(phrase in header, f"Skill activation boundary is missing {phrase!r}")
-    for phrase in ("quickstart", "bootstrap", "https://github.com/withnative/plugins"):
-        require(phrase in body, f"Skill handoff is missing {phrase!r}")
+    positive_triggers = (
+        "outside the visible conversation",
+        "prior work or decisions",
+        "ongoing projects",
+        "handoffs",
+        "compacted or summarised history",
+        "collaboration across sessions, agents, people, or tools",
+        "current workspace state",
+        "even when the person does not mention Native",
+        "save this for later",
+    )
+    negative_boundaries = (
+        "React Native",
+        "genuinely self-contained tasks",
+        "work explicitly assigned to another system",
+    )
+    for phrase in positive_triggers + negative_boundaries:
+        require(phrase in header, f"Skill activation contract is missing {phrase!r}")
+
+    body_contract = (
+        "At the first Native interaction in a fresh conversation",
+        "call `bootstrap` exactly once",
+        "call `quickstart` once and then",
+        "before any other Native tool or substantive Native work",
+        "before acting or asking the person to repeat it",
+        "not permission to scan the workspace broadly",
+        "do not perform indiscriminate scans or imports",
+        "not unrelated writes",
+        "https://github.com/withnative/plugins",
+    )
+    for phrase in body_contract:
+        require(phrase in body, f"Skill continuity contract is missing {phrase!r}")
 
     presentation = (skill_path.parent / "agents" / "openai.yaml").read_text(encoding="utf-8")
     for phrase in (
         'display_name: "Enter your Native workspace"',
-        'short_description: "Recover context and continue durable work."',
+        'short_description: "Proactively recover relevant durable context."',
         f'default_prompt: "{DEFAULT_PROMPT}"',
         "allow_implicit_invocation: true",
     ):
@@ -203,6 +232,24 @@ def validate_docs() -> None:
     require("unreleased `0.1.0` candidate" in readme, "Adapter release status missing")
     require("private vulnerability reporting" in readme, "Private security reporting missing")
     require("not yet published to npm" in guide, "Guide must not present the adapter as published")
+    for phrase in (
+        "broad proactive trigger",
+        "should not have to mention Native",
+        "Whenever the skill activates",
+        "first Native interaction in a fresh conversation",
+        "`bootstrap` exactly once",
+        "before acting or asking you to repeat it",
+        "unconditional once-per-fresh-conversation bootstrap rule",
+        "cannot by itself",
+        "MCP-only runtime path",
+    ):
+        require(phrase in readme, f"README continuity guidance is missing {phrase!r}")
+    require(
+        "Whenever the skill activates" in guide
+        and "requires a corresponding" in guide
+        and "update to the hosted Native service's MCP instructions" in guide,
+        "Installation guide must identify the unresolved hosted MCP instruction update",
+    )
     for text in (readme, guide):
         require("privacyPolicyURL" not in text and "termsOfServiceURL" not in text, "Deferred legal URL invented")
         require("clean-client acceptance" not in text.lower(), "Unverified acceptance claim present")

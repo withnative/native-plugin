@@ -11,7 +11,8 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 Native is a workspace for durable context: current work, decisions, documents, and the
 relationships between them. This first-party plugin lets a supported agent connect to the
 workspace you authorize, recover what is current, and continue work with you across
-conversations.
+conversations. You should not need to say “use Native”: the entry skill applies proactively
+when context outside the visible conversation could materially change an answer or action.
 
 [Learn more about Native](https://personal.withnative.ai/).
 
@@ -25,6 +26,27 @@ The plugin is intentionally small. It adds:
 It does not include a local executable, shell hooks, credentials, copied workspace data, or
 Native server code. Your client manages OAuth sign-in, and the hosted service remains the
 authoritative source for workspace state and current Native guidance.
+
+## How agents enter Native
+
+The packaged `enter` skill has a broad proactive trigger: it should activate when durable
+context outside the visible conversation could materially change an answer or action, so you
+should not have to mention Native. Whenever the skill activates, it enforces
+the first Native interaction in a fresh conversation: first-use setup calls `quickstart`
+once and then `bootstrap` exactly once; otherwise it calls
+`bootstrap` exactly once before any other Native tool or substantive Native work.
+
+Bootstrap provides bounded orientation; it does not authorize a broad workspace scan, import,
+or write. When a task plausibly depends on prior work or decisions, an ongoing project, a
+handoff, compacted or summarised history, collaboration, or current workspace state, the agent
+should retrieve only the relevant Native context before acting or asking you to repeat it.
+
+A client connected only to the hosted MCP endpoint does not load the packaged skill. An
+unconditional once-per-fresh-conversation bootstrap rule for MCP-only clients requires a
+corresponding update to the hosted service's MCP instructions. Those instructions are
+deployed with the Native service and are not owned by this repository; this repository owns
+only the MCP declaration that points clients to the service, so this change cannot by itself
+satisfy the MCP-only runtime path.
 
 ## Trust and control
 
@@ -79,9 +101,9 @@ docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.1` as a source-relocation cache signal. The stdio adapter
-remains an unreleased `0.1.0` candidate behind its independent npm ownership and acceptance
-gates. Its source and pre-release documentation live in
+The plugin manifests use version `0.1.2` as the proactive entry-guidance release and cache
+signal. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent npm
+ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
 version is published to npm.
 

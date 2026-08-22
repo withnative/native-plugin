@@ -1,7 +1,7 @@
 {
   "name": "native",
-  "version": "0.1.1",
-  "description": "Recover context and continue durable work through Native's hosted MCP service.",
+  "version": "0.1.2",
+  "description": "Proactively recover relevant durable context and continue work through Native's hosted MCP service.",
   "author": {
     "name": "Native",
     "url": "https://www.withnative.ai/"
@@ -17,8 +17,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Native",
-    "shortDescription": "Recover context and continue durable work.",
-    "longDescription": "Connect to Native's hosted MCP service to recover durable workspace context, continue work, and record requested updates.",
+    "shortDescription": "Proactively recover relevant durable context.",
+    "longDescription": "Connect to Native's hosted MCP service to check for context beyond the visible conversation, recover what matters, continue work, and record requested updates.",
     "developerName": "Native",
     "category": "Productivity",
     "capabilities": [
@@ -27,7 +27,7 @@
     ],
     "websiteURL": "https://personal.withnative.ai/",
     "defaultPrompt": [
-      "Use $enter to recover the relevant context in my Native workspace and help me continue this work."
+      "Use $enter to check Native for context beyond this conversation, recover what matters, and help me continue this work."
     ]
   },
   "mcpServers": "./.mcp.json"
