@@ -94,7 +94,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.2",
+        "version": "0.1.3",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -155,12 +155,15 @@ def validate_skill() -> None:
         "compacted or summarised history",
         "collaboration across sessions, agents, people, or tools",
         "current workspace state",
-        "even when the person does not mention Native",
+        "material work",
+        "multi-step implementation",
+        "changes to files or external state",
+        "even when the person does not mention Native or ask you to record the work",
         "save this for later",
     )
     negative_boundaries = (
         "React Native",
-        "genuinely self-contained tasks",
+        "trivial self-contained requests",
         "work explicitly assigned to another system",
     )
     for phrase in positive_triggers + negative_boundaries:
@@ -174,6 +177,9 @@ def validate_skill() -> None:
         "before acting or asking the person to repeat it",
         "not permission to scan the workspace broadly",
         "do not perform indiscriminate scans or imports",
+        "make the\nactivity visible before execution",
+        "durable work anchor",
+        "coordination,\nrecovery, and hand-off",
         "not unrelated writes",
         "https://github.com/withnative/plugins",
     )

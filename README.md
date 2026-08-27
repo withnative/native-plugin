@@ -12,7 +12,8 @@ Native is a workspace for durable context: current work, decisions, documents, a
 relationships between them. This first-party plugin lets a supported agent connect to the
 workspace you authorize, recover what is current, and continue work with you across
 conversations. You should not need to say “use Native”: the entry skill applies proactively
-when context outside the visible conversation could materially change an answer or action.
+when context outside the visible conversation could materially change an answer or action,
+and before material work that should remain visible and resumable.
 
 [Learn more about Native](https://personal.withnative.ai/).
 
@@ -30,8 +31,10 @@ authoritative source for workspace state and current Native guidance.
 ## How agents enter Native
 
 The packaged `enter` skill has a broad proactive trigger: it should activate when durable
-context outside the visible conversation could materially change an answer or action, so you
-should not have to mention Native. Whenever the skill activates, it enforces
+context outside the visible conversation could materially change an answer or action, or
+before material multi-step work, file or external-state changes, and reusable artifacts, so
+you should not have to mention Native or explicitly ask for recording.
+Whenever the skill activates, it enforces
 the first Native interaction in a fresh conversation: first-use setup calls `quickstart`
 once and then `bootstrap` exactly once; otherwise it calls
 `bootstrap` exactly once before any other Native tool or substantive Native work.
@@ -40,6 +43,9 @@ Bootstrap provides bounded orientation; it does not authorize a broad workspace 
 or write. When a task plausibly depends on prior work or decisions, an ongoing project, a
 handoff, compacted or summarised history, collaboration, or current workspace state, the agent
 should retrieve only the relevant Native context before acting or asking you to repeat it.
+For material work, the agent follows Bootstrap's recording and authority boundaries to declare
+intent once it is clear and establish or update a durable work anchor when the work is
+substantial or resumable, before execution begins.
 
 A client connected only to the hosted MCP endpoint does not load the packaged skill. An
 unconditional once-per-fresh-conversation bootstrap rule for MCP-only clients requires a
@@ -101,9 +107,9 @@ docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.2` as the proactive entry-guidance release and cache
-signal. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent npm
-ownership and acceptance gates. Its source and pre-release documentation live in
+The plugin manifests use version `0.1.3` as the material-work recording-guidance release and
+cache signal. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent
+npm ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
 version is published to npm.
 
