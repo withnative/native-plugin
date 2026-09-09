@@ -131,13 +131,15 @@ the host's own connection controls:
 | --- | --- |
 | URL | `https://plugin.withnative.ai/mcp` |
 | Transport | Streamable HTTP |
-| Authorization | Bearer token from the Native sign-in |
+| Authorization | Host-managed OAuth/Bearer token obtained from Native sign-in; never paste manually |
 
 Clients may call this a connector, MCP server, or integration. Complete sign-in through
-the host and never paste a bearer token into a conversation, plugin file, or issue. This
-direct connection reaches Native's hosted MCP tools, but it does not include the packaged
-`enter` skill or its proactive bootstrap behavior. You lose the plugin's automatic
-context-entry guidance; invoke Native explicitly according to the host's MCP controls.
+the host; users must not obtain or paste a bearer token into a conversation, plugin file,
+or issue. See the [host-specific MCP routes](docs/plugin-installation.md#direct-mcp-fallback)
+in the full guide. This direct connection reaches Native's hosted MCP tools, but it does
+not include the packaged `enter` skill or its proactive bootstrap behavior. You lose the
+plugin's automatic context-entry guidance; invoke Native explicitly according to the
+host's MCP controls.
 
 See the [complete installation guide](docs/plugin-installation.md) for updates, removal,
 authentication, troubleshooting, and stdio-only clients.

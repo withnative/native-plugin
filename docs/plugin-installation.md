@@ -156,12 +156,64 @@ are unavailable. In the host's Add connector, Add MCP server, or equivalent cont
 | --- | --- |
 | URL | `https://plugin.withnative.ai/mcp` |
 | Transport | Streamable HTTP |
-| Authorization | Bearer token from the Native sign-in |
+| Authorization | Host-managed OAuth/Bearer token obtained from Native sign-in; never paste manually |
 
 Clients use different labels—connector, MCP server, or integration—but these are the same
-three values. Complete sign-in through the host; never paste a bearer token into a
-conversation, plugin file, command history, or issue. Verify that the connection is enabled
-and that Native tools are available, then start a fresh conversation.
+three values. Authentication is host-managed OAuth/sign-in: users must not obtain or paste
+a bearer token into a conversation, plugin file, command history, or issue. Use the
+host-specific route that matches the client, verify that the connection is enabled and
+Native tools are available, then start a fresh conversation.
+
+### ChatGPT desktop
+
+In the ChatGPT desktop app, open **Settings → MCP servers → Add server**. Enter the name
+`native`, choose **Streamable HTTP**, and enter
+`https://plugin.withnative.ai/mcp` as the URL. Save the server and choose **Restart** when
+prompted. If the server list marks Native as needing OAuth, choose **Authenticate** and
+complete the Native sign-in in the host-managed browser flow. In the composer, use `/mcp`
+to view connected servers. ChatGPT web does not read local Codex configuration; use a
+plugin listed in its Plugins Directory there instead.
+
+### Codex CLI and shared Codex configuration
+
+The Codex CLI, ChatGPT desktop app, and Codex IDE extension share the local Codex MCP
+configuration. Add and verify Native from a terminal:
+
+```sh
+codex mcp add native --url https://plugin.withnative.ai/mcp
+codex mcp list
+```
+
+If Codex reports that Native needs authorization, or when starting OAuth explicitly, run:
+
+```sh
+codex mcp login native
+```
+
+Complete the browser sign-in that Codex opens; do not retrieve or paste a bearer token.
+The equivalent supported user configuration is:
+
+```toml
+[mcp_servers.native]
+url = "https://plugin.withnative.ai/mcp"
+```
+
+After authentication, use `codex mcp list` again to verify the configured server. In the
+Codex TUI, `/mcp` shows active MCP servers.
+
+### Claude Code
+
+Add Native as a user-scoped remote HTTP server, then verify it:
+
+```sh
+claude mcp add --transport http --scope user native https://plugin.withnative.ai/mcp
+claude mcp list
+```
+
+In a Claude Code session, run `/mcp`; select Native's authentication action if shown and
+complete the browser sign-in through Claude Code. Claude Code stores and refreshes OAuth
+credentials through the host; do not obtain or paste a bearer token. `/mcp` also shows the
+connected server and its tool count.
 
 This direct connection reaches Native's hosted MCP tools, but it is a subset of the
 packaged plugin experience: it does not include the `enter` skill or its proactive bootstrap
