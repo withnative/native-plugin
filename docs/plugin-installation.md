@@ -39,10 +39,11 @@ Use this order, and keep the Native package distinct from the hosted MCP connect
    flow when one is offered. Follow the host's resulting authentication and reload steps.
 4. If Native is visible in an in-product Plugins Directory, guide the person to select the
    Native listing, review it, choose Install, authenticate, and start a fresh conversation.
-5. If the listing is absent, say so plainly. If that UI has no documented way to add an
-   arbitrary Git marketplace, do not pretend that Native is discoverable there: offer the
-   shortest copyable CLI route or ask a workspace administrator to import
-   `withnative/plugins` from GitHub and make the plugin available.
+5. If the listing is absent, say so plainly and check whether the host exposes a
+   marketplace-add flow. Do not infer that CLI or administrator setup is the only route from
+   an absent listing. If the host's marketplace controls are unavailable for this account,
+   workspace policy, or surface, offer the shortest copyable CLI route or ask a workspace
+   administrator to import `withnative/plugins` from GitHub and make the plugin available.
 6. Use the direct MCP connection below only as the final fallback. It supplies the hosted
    MCP tools but not the packaged skill or its proactive bootstrap behavior.
 
@@ -61,7 +62,24 @@ fallback documented below.
 
 ## ChatGPT/Codex Desktop
 
-The Codex CLI installs Native in two commands. The install verb is `add`, not `install`:
+### ChatGPT desktop: ordinary-user route
+
+Availability depends on the account, workspace policy, and host surface. In ChatGPT
+Desktop, open **Settings → Plugins → Add → Add a marketplace**. In the source field, enter
+`withnative/plugins`; leave the ref at its default `main` and leave sparse paths empty.
+Choose **Add**, open the resulting `withnative/plugins` marketplace or listing, select
+**Native**, and choose **Install**. Complete the Native authentication prompt and start a
+fresh conversation.
+
+If **Add a marketplace** is unavailable, or the marketplace/listing is not shown after the
+add flow, explain that availability is controlled by the account or workspace rather than
+claiming the source is universally unavailable. Then offer the CLI or administrator route
+below.
+
+### Codex CLI: agent route
+
+When the Codex CLI is available, an agent should install Native directly. The install verb
+is `add`, not `install`:
 
 ```sh
 codex plugin marketplace add withnative/plugins
@@ -70,19 +88,20 @@ codex plugin add native@withnative
 
 Confirm the result with `codex plugin list`, then restart ChatGPT/Codex Desktop.
 
-If the host's Plugins Directory lists Native, install it in-product instead:
+If a ChatGPT or Codex Plugins Directory lists Native, an ordinary user can install it
+in-product instead:
 
 1. Open **Plugins Directory** in the available ChatGPT or Codex surface.
 2. Select **Native**, review its capabilities and setup requirements, and choose **Install**.
 3. Complete the Native sign-in or connection prompt.
 4. Start a fresh conversation and invoke Native as described below.
 
-If Native is not listed, the directory is not evidence that this GitHub package can be
-added from that UI. OpenAI's documented GitHub marketplace import is an administrator
-operation; ask an eligible workspace administrator to import
-`https://github.com/withnative/plugins`, or use the CLI above when `codex plugin` is
-available. Choose one route per host. The CLI and desktop app share the same Codex
-configuration, so installing with both routes can produce duplicate skills and tools.
+If Native is not listed, check whether the marketplace-add flow above is available before
+falling back. If the host does not provide that control for the current account or policy,
+use the CLI above when `codex plugin` is available or ask an eligible workspace
+administrator to import `https://github.com/withnative/plugins`. Choose one route per host.
+The CLI and desktop app share the same Codex configuration, so installing with both routes
+can produce duplicate skills and tools.
 
 Start a new conversation and say
 `Use Native's quickstart tool to help me finish setting up Native.` You can invoke Native
@@ -91,7 +110,21 @@ an ordinary request such as `What is current in my Native workspace?`
 
 ## Claude Code
 
-The Claude CLI installs Native in two commands. The default scope is `user`:
+### Claude desktop: ordinary-user route
+
+Availability depends on the account, workspace policy, and host surface. In Claude, open
+**Customize → Plugins → Personal plugins → + → Add marketplace → Add from a repository**.
+Enter `withnative/plugins`, add the marketplace, then select and install **Native** from
+the resulting listing. Complete Native authentication and start a fresh conversation.
+
+If the marketplace-add controls or listing are unavailable, explain that the host account
+or policy is limiting the UI. Offer the CLI route below or an administrator-managed
+distribution; do not claim that every Claude surface must use CLI setup.
+
+### Claude Code CLI: agent route
+
+When the Claude CLI is available, an agent should install Native directly. The default scope
+is `user`:
 
 ```sh
 claude plugin marketplace add withnative/plugins
@@ -108,10 +141,9 @@ it. The equivalent interactive commands are:
 ```
 
 If Native is visible in the Claude desktop plugin browser, select **Add plugin**, choose
-Native, install it, complete sign-in, and start a fresh conversation. The browser can show
-plugins from configured marketplaces; if Native is not visible, do not imply that the
-browser can add this GitHub marketplace. Use the CLI route above or ask an administrator to
-provide a managed distribution.
+Native, install it, complete sign-in, and start a fresh conversation. If it is not visible,
+check the **Add marketplace → Add from a repository** route above before using CLI or
+administrator distribution.
 
 Start a new conversation and say
 `Use Native's quickstart tool to help me finish setting up Native.` To invoke the entry
