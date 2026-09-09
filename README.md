@@ -72,11 +72,34 @@ marketplace. This repository owns the Native package source, but it is not itsel
 and contains no marketplace manifests. Adding the shared marketplace only makes its packages
 available; install `native@withnative` explicitly.
 
+The known package-install surfaces are Claude Code (including its desktop application),
+ChatGPT/Codex Desktop, and Codex CLI where its plugin commands are enabled. This list is
+not exhaustive: plugin availability and installation controls vary by host, account,
+workspace, role, region, and surface. A plugin that declares an MCP server may be limited
+to a desktop or other supported surface.
+
+### Agent-assisted setup
+
+Before installing, inspect the host's existing marketplace, plugin, and MCP connection
+state. If a direct plugin CLI or other installation capability is available, use it to
+add the shared marketplace only when needed, install `native@withnative`, and verify the
+installed package. If direct installation is unavailable, use a host-provided plugin
+suggestion or approval flow when one is offered. Follow the host's authentication and
+reload instructions, then start a fresh conversation.
+
+If Native is visible in the host's Plugins Directory, select it, review the listing,
+choose Install, complete authentication, and start a fresh conversation. If the listing
+is absent, do not claim that the directory can install this GitHub source. When the host
+does not expose a way to add an arbitrary Git marketplace in its UI, offer the shortest
+copyable CLI route below or ask a workspace administrator to import
+`withnative/plugins` from GitHub.
+
 **Claude Code and its desktop application:**
 
 ```sh
 claude plugin marketplace add withnative/plugins
 claude plugin install native@withnative
+claude plugin list
 ```
 
 **ChatGPT/Codex Desktop and Codex CLI:**
@@ -84,16 +107,39 @@ claude plugin install native@withnative
 ```sh
 codex plugin marketplace add withnative/plugins
 codex plugin add native@withnative
+codex plugin list
 ```
 
-Check existing marketplace, plugin, and MCP state before adding anything, then verify the
-installed package. Restart or reload the client if requested. In a fresh conversation, use:
+Choose the command set only when that client's CLI is available; do not hand commands back
+to a person when the agent can run them. In ChatGPT/Codex, the Plugins Directory is an
+alternative only when Native is actually listed. In a managed workspace, an administrator
+can import the public GitHub marketplace and set the plugin's installation policy. Restart
+or reload the client if requested. In a fresh conversation, use:
 
 ```text
 /native:enter
 ```
 
 Or ask: `Use Native's quickstart tool to help me finish setting up Native.`
+
+### Direct MCP fallback
+
+When the packaged plugin cannot be installed, add Native as a connector/MCP server using
+the host's own connection controls:
+
+| Field | Value |
+| --- | --- |
+| URL | `https://plugin.withnative.ai/mcp` |
+| Transport | Streamable HTTP |
+| Authorization | Host-managed OAuth/Bearer token obtained from Native sign-in; never paste manually |
+
+Clients may call this a connector, MCP server, or integration. Complete sign-in through
+the host; users must not obtain or paste a bearer token into a conversation, plugin file,
+or issue. See the [host-specific MCP routes](docs/plugin-installation.md#direct-mcp-fallback)
+in the full guide. This direct connection reaches Native's hosted MCP tools, but it does
+not include the packaged `enter` skill or its proactive bootstrap behavior. You lose the
+plugin's automatic context-entry guidance; invoke Native explicitly according to the
+host's MCP controls.
 
 See the [complete installation guide](docs/plugin-installation.md) for updates, removal,
 authentication, troubleshooting, and stdio-only clients.
