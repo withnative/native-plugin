@@ -89,10 +89,20 @@ reload instructions, then start a fresh conversation.
 
 If Native is visible in the host's Plugins Directory, select it, review the listing,
 choose Install, complete authentication, and start a fresh conversation. If the listing
-is absent, do not claim that the directory can install this GitHub source. When the host
-does not expose a way to add an arbitrary Git marketplace in its UI, offer the shortest
-copyable CLI route below or ask a workspace administrator to import
-`withnative/plugins` from GitHub.
+is absent, do not infer that CLI or administrator setup is the only route: first check
+whether the host exposes its marketplace-add flow. On supported desktop surfaces, an
+ordinary user may be able to add the shared marketplace in-product:
+
+- ChatGPT Desktop: **Settings → Plugins → Add → Add a marketplace**; enter
+  `withnative/plugins`, leave the ref at `main`, and leave sparse paths empty. Open the
+  resulting marketplace, install **Native**, authenticate, and start a fresh conversation.
+- Claude: **Customize → Plugins → Personal plugins → + → Add marketplace → Add from a
+  repository**; enter `withnative/plugins`, then install **Native**, authenticate, and
+  start a fresh conversation.
+
+These controls depend on the account, workspace policy, and host surface. If they are not
+available, offer the shortest copyable CLI route below or ask a workspace administrator to
+import `withnative/plugins` from GitHub.
 
 **Claude Code and its desktop application:**
 
