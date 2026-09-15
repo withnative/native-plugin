@@ -11,10 +11,20 @@ guidance.
 
 At the first Native interaction in a fresh conversation:
 
-- For setup or first-use onboarding, call `quickstart` once and then `bootstrap` exactly
-  once.
-- Otherwise, call `bootstrap` exactly once
-  before any other Native tool or substantive Native work.
+- For setup or first-use onboarding, call `quickstart` once and then obtain one successful
+  `bootstrap` response.
+- Otherwise, obtain one successful `bootstrap` response before any other Native tool or
+  substantive Native work.
+
+If bootstrap fails with a connection-pool timeout, transient transport failure, or HTTP
+502/503/504 before returning a usable run key, retry bootstrap at most twice, waiting one
+second before the first retry and two seconds before the second. Honour a longer server
+`Retry-After`; if it exceeds 30 seconds, stop and report temporary unavailability instead.
+A failed attempt does not require a new conversation. Do not retry authentication,
+validation, or instruction-readiness failures as transient outages. If the attempts are
+exhausted, report the failure and stop Native-dependent work; do not invent workspace state.
+Once a run key is received, retain and reuse it on subsequent calls, including any later
+bootstrap recovery. These retries apply only to bootstrap, not to writes.
 
 Treat `bootstrap` as bounded orientation, not permission to scan the workspace broadly.
 If missing context outside the visible conversation could materially change the answer or

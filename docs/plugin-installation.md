@@ -160,17 +160,22 @@ The entry skill's broad trigger makes its activation proactive when durable cont
 the visible conversation could materially change the answer or action, and before material
 multi-step work, file or external-state changes, and reusable artifacts, so you should not have
 to mention Native or explicitly ask for recording.
-Whenever the skill activates, first-use setup calls `quickstart` once and then `bootstrap`
-exactly once. Otherwise, at the first Native interaction in a fresh
-conversation, it calls `bootstrap` exactly once before any other Native tool or substantive
-Native work. Bootstrap is bounded orientation, not permission for broad workspace scans,
+Whenever the skill activates, first-use setup calls `quickstart` once and then obtains one
+successful `bootstrap` response. Otherwise, at the first Native interaction in a fresh
+conversation, it obtains one successful `bootstrap` response before any other Native tool or
+substantive Native work. A transient failure before a usable run key is returned allows at
+most two retries with backoff, as specified by the entry skill; it does not require a new
+conversation. After success the agent reuses the returned key. Authentication, validation,
+and instruction-readiness failures require their specific repair, not this retry path.
+
+Bootstrap is bounded orientation, not permission for broad workspace scans,
 imports, or unrelated writes. The agent retrieves relevant Native context before acting or
 asking you to repeat it. For material work, it follows Bootstrap's recording and authority
 boundaries to declare intent once it is clear and establish or update a durable work anchor when
 the work is substantial or resumable, before execution begins.
 
-Direct MCP-only connections do not load the packaged entry skill. An unconditional
-once-per-fresh-conversation bootstrap rule for MCP-only clients requires a corresponding
+Direct MCP-only connections do not load the packaged entry skill. A
+rule requiring one successful bootstrap per conversation for MCP-only clients requires a corresponding
 update to the hosted Native service's MCP instructions. Those instructions are deployed with
 the service; they are not part of this repository, so this repository change cannot satisfy
 the MCP-only runtime path by itself.
