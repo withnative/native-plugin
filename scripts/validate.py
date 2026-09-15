@@ -94,7 +94,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.3",
+        "version": "0.1.4",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -171,9 +171,12 @@ def validate_skill() -> None:
 
     body_contract = (
         "At the first Native interaction in a fresh conversation",
-        "call `bootstrap` exactly once",
+        "obtain one successful `bootstrap` response",
+        "retry bootstrap at most twice",
+        "retain and reuse it",
+        "only to bootstrap, not to writes",
         "call `quickstart` once and then",
-        "before any other Native tool or substantive Native work",
+        "before any other Native tool or\n  substantive Native work",
         "before acting or asking the person to repeat it",
         "not permission to scan the workspace broadly",
         "do not perform indiscriminate scans or imports",
@@ -243,9 +246,9 @@ def validate_docs() -> None:
         "should not have to mention Native",
         "Whenever the skill activates",
         "first Native interaction in a fresh conversation",
-        "`bootstrap` exactly once",
+        "successful `bootstrap` response",
         "before acting or asking you to repeat it",
-        "unconditional once-per-fresh-conversation bootstrap rule",
+        "rule requiring one successful bootstrap per conversation",
         "cannot by itself",
         "MCP-only runtime path",
     ):

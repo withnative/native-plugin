@@ -36,8 +36,12 @@ before material multi-step work, file or external-state changes, and reusable ar
 you should not have to mention Native or explicitly ask for recording.
 Whenever the skill activates, it enforces
 the first Native interaction in a fresh conversation: first-use setup calls `quickstart`
-once and then `bootstrap` exactly once; otherwise it calls
-`bootstrap` exactly once before any other Native tool or substantive Native work.
+once and then obtains one successful `bootstrap` response; otherwise it obtains one
+successful `bootstrap` response before any other Native tool or substantive Native work.
+A transient bootstrap failure before a usable run key is returned allows at most two retries
+with backoff. The skill defines the retry delays and stopping conditions. A new conversation
+is unnecessary; after success, the agent retains the returned run key. This recovery rule
+applies only to bootstrap, not to writes.
 
 Bootstrap provides bounded orientation; it does not authorize a broad workspace scan, import,
 or write. When a task plausibly depends on prior work or decisions, an ongoing project, a
@@ -47,8 +51,8 @@ For material work, the agent follows Bootstrap's recording and authority boundar
 intent once it is clear and establish or update a durable work anchor when the work is
 substantial or resumable, before execution begins.
 
-A client connected only to the hosted MCP endpoint does not load the packaged skill. An
-unconditional once-per-fresh-conversation bootstrap rule for MCP-only clients requires a
+A client connected only to the hosted MCP endpoint does not load the packaged skill. A
+rule requiring one successful bootstrap per conversation for MCP-only clients requires a
 corresponding update to the hosted service's MCP instructions. Those instructions are
 deployed with the Native service and are not owned by this repository; this repository owns
 only the MCP declaration that points clients to the service, so this change cannot by itself
@@ -163,7 +167,7 @@ docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.3` as the material-work recording-guidance release and
+The plugin manifests use version `0.1.4` as the bounded-bootstrap-recovery release and
 cache signal. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent
 npm ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
