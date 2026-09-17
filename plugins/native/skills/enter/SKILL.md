@@ -16,15 +16,23 @@ At the first Native interaction in a fresh conversation:
 - Otherwise, obtain one successful `bootstrap` response before any other Native tool or
   substantive Native work.
 
-If bootstrap fails with a connection-pool timeout, transient transport failure, or HTTP
-502/503/504 before returning a usable run key, retry bootstrap at most twice, waiting one
-second before the first retry and two seconds before the second. Honour a longer server
-`Retry-After`; if it exceeds 30 seconds, stop and report temporary unavailability instead.
-A failed attempt does not require a new conversation. Do not retry authentication,
-validation, or instruction-readiness failures as transient outages. If the attempts are
-exhausted, report the failure and stop Native-dependent work; do not invent workspace state.
-Once a run key is received, retain and reuse it on subsequent calls, including any later
-bootstrap recovery. These retries apply only to bootstrap, not to writes.
+Bootstrap entry is once per conversation, not once per skill activation or task.
+Re-triggering or re-reading this skill on a later user turn, when the task, intent, or
+artifact changes, or after context compaction is still within the same conversation and
+must not cause another `bootstrap` call or successful response. Retain the original returned
+`run_key` across turns and compaction, and reuse it on all subsequent Native calls. When
+the underlying aim materially changes, call `set_intent` with that same `run_key`.
+
+Before the first successful `bootstrap` response, if bootstrap fails with a connection-pool
+timeout, transient transport failure, or HTTP 502/503/504 before returning a usable run key,
+retry bootstrap at most twice, waiting one second before the first retry and two seconds
+before the second. Honour a longer server `Retry-After`; if it exceeds 30 seconds, stop and
+report temporary unavailability instead. A failed attempt does not require a new
+conversation. Do not retry authentication, validation, or instruction-readiness failures as
+transient outages. If the attempts are exhausted, report the failure and stop Native-dependent
+work; do not invent workspace state. The bounded retry window closes with the first successful
+response; do not retry or call `bootstrap` again after that. These retries apply only to
+bootstrap, not to writes.
 
 Treat `bootstrap` as bounded orientation, not permission to scan the workspace broadly.
 If missing context outside the visible conversation could materially change the answer or

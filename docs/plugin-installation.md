@@ -160,13 +160,22 @@ The entry skill's broad trigger makes its activation proactive when durable cont
 the visible conversation could materially change the answer or action, and before material
 multi-step work, file or external-state changes, and reusable artifacts, so you should not have
 to mention Native or explicitly ask for recording.
-Whenever the skill activates, first-use setup calls `quickstart` once and then obtains one
-successful `bootstrap` response. Otherwise, at the first Native interaction in a fresh
-conversation, it obtains one successful `bootstrap` response before any other Native tool or
-substantive Native work. A transient failure before a usable run key is returned allows at
-most two retries with backoff, as specified by the entry skill; it does not require a new
-conversation. After success the agent reuses the returned key. Authentication, validation,
-and instruction-readiness failures require their specific repair, not this retry path.
+At the first Native interaction in a conversation, first-use setup calls `quickstart` once
+and then obtains one successful `bootstrap` response. Otherwise, the agent obtains one
+successful `bootstrap` response before any other Native tool or substantive Native work.
+Bootstrap entry is once per conversation, not once per skill activation or task.
+Re-triggering or re-reading the skill on a later user turn, when the task, intent, or artifact
+changes, or after context compaction is still within the same conversation and must not cause
+another `bootstrap` call or successful response. The agent retains the original `run_key`
+across turns and compaction and reuses it on all subsequent Native calls. When the underlying
+aim materially changes, call `set_intent` with that same `run_key`.
+
+Before any successful bootstrap response, qualifying transient failures before a usable run
+key is returned allow at most two retries with backoff, as specified by the entry skill. A
+failed attempt does not require a new conversation. Authentication, validation, and
+instruction-readiness failures require their specific repair, not this retry path. The bounded
+retry window ends at the first successful response; these retries apply only to bootstrap,
+not to writes.
 
 Bootstrap is bounded orientation, not permission for broad workspace scans,
 imports, or unrelated writes. The agent retrieves relevant Native context before acting or

@@ -34,14 +34,22 @@ The packaged `enter` skill has a broad proactive trigger: it should activate whe
 context outside the visible conversation could materially change an answer or action, or
 before material multi-step work, file or external-state changes, and reusable artifacts, so
 you should not have to mention Native or explicitly ask for recording.
-Whenever the skill activates, it enforces
-the first Native interaction in a fresh conversation: first-use setup calls `quickstart`
-once and then obtains one successful `bootstrap` response; otherwise it obtains one
+At the first Native interaction in a conversation, first-use setup calls `quickstart` once
+and then obtains one successful `bootstrap` response; otherwise the agent obtains one
 successful `bootstrap` response before any other Native tool or substantive Native work.
-A transient bootstrap failure before a usable run key is returned allows at most two retries
-with backoff. The skill defines the retry delays and stopping conditions. A new conversation
-is unnecessary; after success, the agent retains the returned run key. This recovery rule
-applies only to bootstrap, not to writes.
+Bootstrap entry is once per conversation, not once per skill activation or task.
+Re-triggering or re-reading the skill on a later user turn, when the task, intent, or artifact
+changes, or after context compaction is still within the same conversation and must not cause
+another `bootstrap` call or successful response. The agent retains the original `run_key`
+across turns and compaction and reuses it on all subsequent Native calls. When the underlying
+aim materially changes, call `set_intent` with that same `run_key`.
+
+Before any successful bootstrap response, qualifying transient failures before a usable run
+key is returned allow at most two retries with backoff. The skill defines the retry delays
+and stopping conditions. A failed attempt does not require a new conversation. Authentication,
+validation, and instruction-readiness failures require their specific repair, not this retry
+path. The bounded retry window ends at the first successful response; these retries apply
+only to bootstrap, not to writes.
 
 Bootstrap provides bounded orientation; it does not authorize a broad workspace scan, import,
 or write. When a task plausibly depends on prior work or decisions, an ongoing project, a
@@ -167,8 +175,8 @@ docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.4` as the bounded-bootstrap-recovery release and
-cache signal. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent
+The plugin manifests use version `0.1.5` as the conversation-scoped bootstrap re-entry release
+and cache signal. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent
 npm ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
 version is published to npm.
