@@ -94,7 +94,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.4",
+        "version": "0.1.5",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -173,8 +173,7 @@ def validate_skill() -> None:
         "At the first Native interaction in a fresh conversation",
         "obtain one successful `bootstrap` response",
         "retry bootstrap at most twice",
-        "retain and reuse it",
-        "only to bootstrap, not to writes",
+        "These retries apply only to\nbootstrap, not to writes",
         "call `quickstart` once and then",
         "before any other Native tool or\n  substantive Native work",
         "before acting or asking the person to repeat it",
@@ -188,6 +187,21 @@ def validate_skill() -> None:
     )
     for phrase in body_contract:
         require(phrase in body, f"Skill continuity contract is missing {phrase!r}")
+
+    normalized_skill = re.sub(r"\s+", " ", body)
+    reentry_contract = (
+        "Bootstrap entry is once per conversation, not once per skill activation or task.",
+        "Re-triggering or re-reading this skill on a later user turn",
+        "when the task, intent, or artifact changes",
+        "after context compaction is still within the same conversation",
+        "must not cause another `bootstrap` call or successful response",
+        "Retain the original returned `run_key` across turns and compaction",
+        "call `set_intent` with that same `run_key`",
+        "Before the first successful `bootstrap` response",
+        "bounded retry window closes with the first successful response",
+    )
+    for phrase in reentry_contract:
+        require(phrase in normalized_skill, f"Skill re-entry contract is missing {phrase!r}")
 
     presentation = (skill_path.parent / "agents" / "openai.yaml").read_text(encoding="utf-8")
     for phrase in (
@@ -241,24 +255,37 @@ def validate_docs() -> None:
     require("unreleased `0.1.0` candidate" in readme, "Adapter release status missing")
     require("private vulnerability reporting" in readme, "Private security reporting missing")
     require("not yet published to npm" in guide, "Guide must not present the adapter as published")
-    for phrase in (
+    readme_contract = (
         "broad proactive trigger",
         "should not have to mention Native",
-        "Whenever the skill activates",
-        "first Native interaction in a fresh conversation",
+        "first Native interaction in a conversation",
         "successful `bootstrap` response",
         "before acting or asking you to repeat it",
         "rule requiring one successful bootstrap per conversation",
         "cannot by itself",
         "MCP-only runtime path",
-    ):
-        require(phrase in readme, f"README continuity guidance is missing {phrase!r}")
+    )
+    reentry_docs_contract = (
+        "once per conversation, not once per skill activation or task",
+        "Re-triggering or re-reading the skill on a later user turn",
+        "when the task, intent, or artifact changes",
+        "after context compaction is still within the same conversation",
+        "must not cause another `bootstrap` call or successful response",
+        "original `run_key` across turns and compaction",
+        "call `set_intent` with that same `run_key`",
+    )
+    normalized_readme = re.sub(r"\s+", " ", readme)
+    for phrase in readme_contract + reentry_docs_contract:
+        require(phrase in normalized_readme, f"README continuity guidance is missing {phrase!r}")
     require(
-        "Whenever the skill activates" in guide
+        "Re-triggering or re-reading the skill on a later user turn" in guide
         and "requires a corresponding" in guide
         and "update to the hosted Native service's MCP instructions" in guide,
         "Installation guide must identify the unresolved hosted MCP instruction update",
     )
+    normalized_guide = re.sub(r"\s+", " ", guide)
+    for phrase in reentry_docs_contract:
+        require(phrase in normalized_guide, f"Installation guide continuity guidance is missing {phrase!r}")
     for text in (readme, guide):
         require("privacyPolicyURL" not in text and "termsOfServiceURL" not in text, "Deferred legal URL invented")
         require("clean-client acceptance" not in text.lower(), "Unverified acceptance claim present")
