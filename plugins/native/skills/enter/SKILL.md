@@ -52,10 +52,11 @@ recovery, and hand-off.
 Activation permits relevant discovery, not unrelated writes. Make writes only when they
 are within the person's request and the current Native guidance permits them.
 
-If you are asked to install the plugin, first probe whether you can run the
-client CLI yourself (`claude --version`, `codex --version`); if you can,
-install it rather than relaying commands. If you cannot, ask whether the
-person prefers the terminal or the UI route — with a recommendation — then
+If you are asked to install the plugin, first probe whether you can run the client CLI
+yourself (`claude plugin list`, `codex plugin list` — a bare `--version` check proves only
+that a binary resolves and does not authorise proceeding); if the list probe succeeds,
+install it rather than relaying commands. If the probe fails, or the install itself errors,
+ask whether the person prefers the terminal or the UI route — with a recommendation — then
 give instructions for that route only. Installation and authorisation are
 separate steps: after any non-interactive install, run or name the login
 command (`claude mcp login native`, `codex mcp login native`) as the immediate
