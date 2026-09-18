@@ -52,6 +52,16 @@ recovery, and hand-off.
 Activation permits relevant discovery, not unrelated writes. Make writes only when they
 are within the person's request and the current Native guidance permits them.
 
+If you are asked to install the plugin, first probe whether you can run the
+client CLI yourself (`claude --version`, `codex --version`); if you can,
+install it rather than relaying commands. If you cannot, ask whether the
+person prefers the terminal or the UI route — with a recommendation — then
+give instructions for that route only. Installation and authorisation are
+separate steps: after any non-interactive install, run or name the login
+command (`claude mcp login native`, `codex mcp login native`) as the immediate
+next action. Full procedure: `docs/plugin-installation.md` in
+`https://github.com/withnative/native-plugin`.
+
 If the Native tools are unavailable, say that the connection is unavailable and point to
 `https://github.com/withnative/plugins` for catalogue and installation guidance. Do not
 invent workspace state or product guidance.
