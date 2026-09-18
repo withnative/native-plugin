@@ -25,27 +25,56 @@ Open https://github.com/withnative/native-plugin and follow the setup guide for 
 
 ### For agents following this guide
 
-Use this order, and keep the Native package distinct from the hosted MCP connection:
+Follow this decision procedure in order. The commands differ per client (table below); the
+shape does not. Keep the Native package distinct from the hosted MCP connection.
 
-1. Inspect the host's existing marketplace, plugin, and MCP connection state. Do not add a
-   second marketplace, plugin, or standalone Native connection when the desired item is
-   already present. Ask before changing an existing standalone Native MCP connection.
-2. If the client CLI or another direct installation capability is available, perform the
-   installation yourself. Add `withnative/plugins` only when it is absent, install
-   `native@withnative`, and verify the package with the host's list/status command. Do not
-   substitute a curated catalogue search for the repository the user supplied, and do not
-   send interactive commands back to the user when you can run the non-interactive CLI.
-3. If direct installation is unavailable, use a host-provided plugin suggestion or approval
-   flow when one is offered. Follow the host's resulting authentication and reload steps.
-4. If Native is visible in an in-product Plugins Directory, guide the person to select the
-   Native listing, review it, choose Install, authenticate, and start a fresh conversation.
-5. If the listing is absent, say so plainly and check whether the host exposes a
-   marketplace-add flow. Do not infer that CLI or administrator setup is the only route from
-   an absent listing. If the host's marketplace controls are unavailable for this account,
-   workspace policy, or surface, offer the shortest copyable CLI route or ask a workspace
-   administrator to import `withnative/plugins` from GitHub and make the plugin available.
-6. Use the direct MCP connection below only as the final fallback. It supplies the hosted
-   MCP tools but not the packaged skill or its proactive bootstrap behavior.
+1. **Inspect existing state first.** Do not add a second marketplace, plugin, or standalone
+   Native connection when the desired item is already present. Ask before changing an
+   existing standalone Native MCP connection.
+2. **Probe whether you can drive the client CLI — do not ask the person.** Run the client's
+   read-only list command — `claude plugin list` (`codex plugin list` for Codex) — which
+   exercises the actual install command surface and doubles as step 1's state inspection. A
+   bare `--version` check proves only that a binary resolves and does not by itself authorise
+   proceeding. If the list probe succeeds, perform the installation yourself: add
+   `withnative/plugins` only when it is absent, install `native@withnative`, and verify the
+   package with the host's list/status command — or, if the session calls for caution, make
+   one confirmable proposal (`I can install this for you using the Claude Code CLI. I'd run
+   these commands. Is that okay?`) and then install. Do not substitute a curated catalogue
+   search for the repository the user supplied, and do not send interactive commands back to
+   the user when you can run the non-interactive CLI. If the probe fails — or the install
+   itself errors — that is a clean "cannot act" answer that falls through to step 3, not a
+   failure to report.
+3. **If you cannot install, ask one route question — then give one route.** Say something
+   like: "I've got the instructions. I can't install directly myself, but I can help you to
+   install it via either the terminal or via the UI you're using now. Which would you
+   prefer?" The person sees only this either/or question, and then instructions for the
+   single route they choose — never several procedures at once. Pick what to recommend with
+   these criteria, in preference order: a host-provided plugin suggestion or approval flow,
+   when one is offered (follow the host's resulting authentication and reload steps); the
+   in-product Plugins Directory or marketplace-add flow (select the Native listing, review
+   it, choose Install, authenticate, and start a fresh conversation); otherwise the shortest
+   copyable terminal CLI route — or, where account, workspace policy, or surface controls
+   block the other routes, asking a workspace administrator to import `withnative/plugins`
+   from GitHub and make the plugin available. Do not infer from an absent listing that CLI
+   or administrator setup is the only route; check whether the host exposes a
+   marketplace-add flow first.
+4. **Treat authorisation as a second step that fails separately from installation.** A
+   non-interactive install — yours or the person's terminal commands — does not complete
+   OAuth sign-in by itself. Name the login command as the immediate next action (see table),
+   and verify it: the plugin can list as installed while Native's tools stay unavailable and
+   the `native` MCP server shows disconnected or asks for authentication. The terminal login
+   is the reliable route; it opens the browser sign-in window (on headless or SSH sessions,
+   use `claude mcp login native --no-browser`). If the desktop client offers its own
+   authorisation control, that may also work, but do not rely on it — if the tools are still
+   unavailable after install, run the terminal login.
+5. Use the direct MCP connection below only as the final fallback. It supplies
+   the hosted MCP tools but not the packaged skill or its proactive bootstrap
+   behavior.
+
+| Client | Install | Verify | Authorise (terminal) |
+| --- | --- | --- | --- |
+| Claude Code | `claude plugin marketplace add withnative/plugins` then `claude plugin install native@withnative` | `claude plugin list` | `claude mcp login native` |
+| ChatGPT/Codex | `codex plugin marketplace add withnative/plugins` then `codex plugin add native@withnative` | `codex plugin list` | `codex mcp login native` |
 
 Verify the installed plugin afterwards and follow any reload or restart instruction reported
 by the client. If the current conversation cannot load the newly installed plugin, give the
@@ -155,6 +184,25 @@ The installed plugin supplies Native's entry skill and an authenticated connecti
 `https://plugin.withnative.ai/mcp`. The host owns the OAuth flow. Complete sign-in in the
 window it opens; never paste a bearer token into a conversation, command, plugin file, or
 repository issue.
+
+Installation and authorisation are separate steps: installing the plugin does
+not sign you in. After any non-interactive install, authorise the `native` MCP
+server from a terminal as the immediate next action — for Claude Code:
+
+```sh
+claude mcp login native
+```
+
+and for ChatGPT/Codex:
+
+```sh
+codex mcp login native
+```
+
+You are in the unauthorised state when the plugin lists as installed but
+Native's tools stay unavailable, or the `native` server shows disconnected or
+asks for authentication. Run the login command above, complete the browser
+sign-in, then restart or reload the client and start a new conversation.
 
 The entry skill's broad trigger makes its activation proactive when durable context outside
 the visible conversation could materially change the answer or action, and before material
