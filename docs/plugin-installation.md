@@ -66,10 +66,13 @@ shape does not. Keep the Native package distinct from the hosted MCP connection.
    is the reliable route; it opens the browser sign-in window. On headless or SSH
    sessions, add `--no-browser` (`claude mcp login native --no-browser`,
    `codex mcp login native --no-browser`): open the printed authorization URL in a
-   local browser, complete sign-in, and paste the full callback URL back when
-   prompted. Codex CLI `0.156.1` accepted this paste-back in an isolated OAuth
-   test when the callback page could not load; Native's live flow has not been
-   tested this way. If the desktop client offers its own
+   local browser and complete sign-in. Paste the full callback URL at the
+   still-running login prompt, or send it to the agent in chat if that agent
+   controls the prompt and can enter it for you. The URL contains a short-lived
+   authorization code and remains in the chat transcript if sent there. Never
+   send a bearer token. Codex CLI `0.156.1` accepted this paste-back in an
+   isolated OAuth test when the callback page could not load; Native's live
+   flow has not been tested this way. If the desktop client offers its own
    authorisation control, that may also work, but do not rely on it — if the tools are still
    unavailable after install, run the terminal login.
 5. Use the direct MCP connection below only as the final fallback. It supplies
@@ -339,13 +342,14 @@ finishes; if standard input closes, the process exits and the callback becomes s
    codex mcp login native --no-browser
    ```
 
-   Open only that fresh authorization URL in a local browser, complete Native
-   sign-in there, and paste the full callback URL back at the still-running
-   remote prompt when asked. Keep the login process and its standard input open
-   until this finishes; if standard input closes, the process exits and the
-   callback becomes stale. Never paste or publish the callback URL,
-   authorization code, or bearer token into chat, issues, files, or command
-   history. See
+   Open only that fresh authorization URL in a local browser and complete Native
+   sign-in there. Paste the full callback URL at the still-running remote prompt,
+   or send it to the agent in chat if that agent controls the prompt and can
+   enter it for you. The URL contains a short-lived authorization code and will
+   remain in the chat transcript if sent there. Keep the login process and its
+   standard input open until this finishes; if standard input closes, the
+   callback becomes stale. Do not publish the callback URL or code in issues,
+   files, or command history, and never send a bearer token in chat. See
    [Model Context Protocol](https://developers.openai.com/codex/mcp) under "OAuth
    client registration and callbacks": local callback URLs bind locally and
    non-local callback URLs bind to `0.0.0.0`.
@@ -388,7 +392,9 @@ credentials through the host; do not obtain or paste a bearer token. `/mcp` also
 connected server and its tool count. On headless or SSH sessions with Claude Code
 `2.1.186` or later, run `claude mcp login native --no-browser` from an interactive
 terminal (`ssh -t` if connecting over SSH) and paste the redirect URL at that
-terminal prompt. This route follows Claude Code's documented CLI behavior; it has
+terminal prompt. If an agent controls the still-running prompt, you may send
+the URL in chat for the agent to enter; the URL will remain in the transcript.
+This route follows Claude Code's documented CLI behavior; it has
 not yet been verified against a live Native login.
 
 This direct connection reaches Native's hosted MCP tools, but it is a subset of the

@@ -60,9 +60,13 @@ ask whether the person prefers the terminal or the UI route — with a recommend
 give instructions for that route only. Installation and authorisation are
 separate steps: after any non-interactive install, run or name the login
 command (`claude mcp login native`, `codex mcp login native`) as the immediate
-next action. On headless or SSH sessions, add `--no-browser` and paste the
-callback URL at the interactive terminal prompt, never into agent chat. For Claude
-Code this needs version `2.1.186` or later and `ssh -t` when using SSH. Full
+next action. On headless or SSH sessions, add `--no-browser`. If you control the
+still-running login prompt, the person may paste the full callback URL into
+agent chat for you to enter there; otherwise have them paste it directly at
+the terminal prompt. Explain that the URL contains a short-lived authorization
+code and remains in the chat transcript. Never ask for a bearer token or put
+the callback URL in durable records. For Claude Code this needs version
+`2.1.186` or later and `ssh -t` when using SSH. Full
 procedure: `docs/plugin-installation.md` in
 `https://github.com/withnative/native-plugin`.
 
@@ -74,9 +78,10 @@ When Codex reports expired or missing Native OAuth on a headless or remote host,
 follow `docs/plugin-installation.md` ("Headless or remote Codex re-authentication"):
 `codex mcp list` is only a strong clue, then run one fresh
 `codex mcp login native --no-browser`, open only its fresh authorization URL
-locally, and paste the full callback URL at its terminal prompt even when the
-callback page cannot load. This path was verified with a mock OAuth server on
-Codex CLI `0.156.1`, not a live Native grant. Only if paste-back fails,
+locally, and enter the full callback URL at its still-running terminal prompt,
+even when the callback page cannot load. If you control that prompt, the person
+may send the URL in chat for you to enter. This path was verified with a mock
+OAuth server on Codex CLI `0.156.1`, not a live Native grant. Only if paste-back fails,
 retry with `-c mcp_oauth_callback_port=4321` plus local `ssh -L` forwarding to
 its still-running listener. Then reload the client or start
 a new conversation and verify with `list` plus one live Native tool call. In an
