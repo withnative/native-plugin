@@ -66,3 +66,11 @@ next action. Full procedure: `docs/plugin-installation.md` in
 If the Native tools are unavailable, say that the connection is unavailable and point to
 `https://github.com/withnative/plugins` for catalogue and installation guidance. Do not
 invent workspace state or product guidance.
+
+When Codex reports expired or missing Native OAuth on a headless or remote host,
+follow `docs/plugin-installation.md` ("Headless or remote Codex re-authentication"):
+`codex mcp list` is only a strong clue, then run one fresh
+`codex mcp login native --no-browser -c mcp_oauth_callback_port=4321` with local
+`ssh -L` forwarding to its still-running listener, and verify with `list` plus one
+live Native tool call. Never reuse an old authorization URL: a callback after its
+login process exits is stale.
