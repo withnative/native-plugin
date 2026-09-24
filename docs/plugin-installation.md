@@ -67,8 +67,9 @@ shape does not. Keep the Native package distinct from the hosted MCP connection.
    sessions, add `--no-browser` (`claude mcp login native --no-browser`,
    `codex mcp login native --no-browser`): open the printed authorization URL in a
    local browser, complete sign-in, and paste the full callback URL back when
-   prompted. Codex CLI `0.156.1` accepts the pasted URL even when the callback
-   page cannot load. If the desktop client offers its own
+   prompted. Codex CLI `0.156.1` accepted this paste-back in an isolated OAuth
+   test when the callback page could not load; Native's live flow has not been
+   tested this way. If the desktop client offers its own
    authorisation control, that may also work, but do not rely on it — if the tools are still
    unavailable after install, run the terminal login.
 5. Use the direct MCP connection below only as the final fallback. It supplies
@@ -330,7 +331,9 @@ finishes; if standard input closes, the process exits and the callback becomes s
 2. On the remote host, start one fresh login that prints its authorization URL
    instead of opening a browser. On Codex CLI `0.156.1`, `--no-browser` prints
    the authorization URL and then accepts the callback URL pasted back at its
-   prompt — "If the callback page cannot load, paste that URL here anyway":
+   prompt — "If the callback page cannot load, paste that URL here anyway".
+   This was verified with a mock OAuth server on `0.156.1`; if Native's live
+   flow does not complete, use the fallback in step 3:
 
    ```sh
    codex mcp login native --no-browser
@@ -382,9 +385,11 @@ claude mcp list
 In a Claude Code session, run `/mcp`; select Native's authentication action if shown and
 complete the browser sign-in through Claude Code. Claude Code stores and refreshes OAuth
 credentials through the host; do not obtain or paste a bearer token. `/mcp` also shows the
-connected server and its tool count. On headless or SSH sessions, run
-`claude mcp login native --no-browser` from a terminal and paste the redirect URL
-back when prompted.
+connected server and its tool count. On headless or SSH sessions with Claude Code
+`2.1.186` or later, run `claude mcp login native --no-browser` from an interactive
+terminal (`ssh -t` if connecting over SSH) and paste the redirect URL at that
+terminal prompt. This route follows Claude Code's documented CLI behavior; it has
+not yet been verified against a live Native login.
 
 This direct connection reaches Native's hosted MCP tools, but it is a subset of the
 packaged plugin experience: it does not include the `enter` skill or its proactive bootstrap

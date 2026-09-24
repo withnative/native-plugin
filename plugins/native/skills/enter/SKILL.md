@@ -61,7 +61,9 @@ give instructions for that route only. Installation and authorisation are
 separate steps: after any non-interactive install, run or name the login
 command (`claude mcp login native`, `codex mcp login native`) as the immediate
 next action. On headless or SSH sessions, add `--no-browser` and paste the
-callback URL back when prompted. Full procedure: `docs/plugin-installation.md` in
+callback URL at the interactive terminal prompt, never into agent chat. For Claude
+Code this needs version `2.1.186` or later and `ssh -t` when using SSH. Full
+procedure: `docs/plugin-installation.md` in
 `https://github.com/withnative/native-plugin`.
 
 If the Native tools are unavailable, say that the connection is unavailable and point to
@@ -72,8 +74,9 @@ When Codex reports expired or missing Native OAuth on a headless or remote host,
 follow `docs/plugin-installation.md` ("Headless or remote Codex re-authentication"):
 `codex mcp list` is only a strong clue, then run one fresh
 `codex mcp login native --no-browser`, open only its fresh authorization URL
-locally, and paste the full callback URL back at its prompt even when the
-callback page cannot load — no SSH forwarding needed. Only if paste-back fails,
+locally, and paste the full callback URL at its terminal prompt even when the
+callback page cannot load. This path was verified with a mock OAuth server on
+Codex CLI `0.156.1`, not a live Native grant. Only if paste-back fails,
 retry with `-c mcp_oauth_callback_port=4321` plus local `ssh -L` forwarding to
 its still-running listener. Then reload the client or start
 a new conversation and verify with `list` plus one live Native tool call. In an

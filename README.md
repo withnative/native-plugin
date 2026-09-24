@@ -176,8 +176,7 @@ scripts/validate.py      Standalone repository contract validation
 ```
 
 The plugin manifests use version `0.1.7` to release the headless Codex and Claude Code
-reauthorization guidance and refresh client caches. The stdio adapter remains an unreleased
-`0.1.0` candidate behind its independent
+reauthorization guidance and refresh client caches. The stdio adapter remains an unreleased `0.1.0` candidate behind its independent
 npm ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
 version is published to npm.
