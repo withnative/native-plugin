@@ -62,13 +62,13 @@ shape does not. Keep the Native package distinct from the hosted MCP connection.
    non-interactive install — yours or the person's terminal commands — does not complete
    OAuth sign-in by itself. Name the login command as the immediate next action (see table),
    and verify it: the plugin can list as installed while Native's tools stay unavailable and
-   the    `native` MCP server shows disconnected or asks for authentication. The terminal login
+   the `native` MCP server shows disconnected or asks for authentication. The terminal login
    is the reliable route; it opens the browser sign-in window. On headless or SSH
    sessions, add `--no-browser` (`claude mcp login native --no-browser`,
    `codex mcp login native --no-browser`): open the printed authorization URL in a
    local browser, complete sign-in, and paste the full callback URL back when
-   prompted. Codex accepts the pasted URL even when the callback page cannot load,
-   so no SSH port forwarding is needed. If the desktop client offers its own
+   prompted. Codex CLI `0.156.1` accepts the pasted URL even when the callback
+   page cannot load. If the desktop client offers its own
    authorisation control, that may also work, but do not rely on it — if the tools are still
    unavailable after install, run the terminal login.
 5. Use the direct MCP connection below only as the final fallback. It supplies
@@ -330,8 +330,7 @@ finishes; if standard input closes, the process exits and the callback becomes s
 2. On the remote host, start one fresh login that prints its authorization URL
    instead of opening a browser. On Codex CLI `0.156.1`, `--no-browser` prints
    the authorization URL and then accepts the callback URL pasted back at its
-   prompt — "If the callback page cannot load, paste that URL here anyway" — so
-   no SSH port forwarding is needed:
+   prompt — "If the callback page cannot load, paste that URL here anyway":
 
    ```sh
    codex mcp login native --no-browser
