@@ -315,7 +315,15 @@ finishes; if standard input closes, the process exits and the callback becomes s
    attempt a token refresh, and a credential-refresh defect has shown `Not logged
    in` while a test Native call still worked. Separate client auth from service
    reachability with a live Native tool call plus an independent public metadata
-   check; a metadata `200` alone does not prove authenticated MCP works.
+   check. For example, this checks whether Native's OAuth discovery endpoint is
+   reachable without using a credential:
+
+   ```sh
+   curl -fsS -o /dev/null -w '%{http_code}\n' \
+     https://plugin.withnative.ai/.well-known/oauth-protected-resource
+   ```
+
+   A metadata `200` alone does not prove authenticated MCP works.
 2. On the remote host, start one fresh login with a per-login fixed listener port.
    Verified on Codex CLI `0.156.1` against an isolated mock OAuth server (no real
    credentials): `--no-browser` still prints the authorization URL and keeps a
@@ -336,7 +344,8 @@ finishes; if standard input closes, the process exits and the callback becomes s
    over a safe transport and keep that SSH session open:
 
    ```sh
-   ssh -L 4321:127.0.0.1:4321 <remote-host>
+   ssh -N -o ExitOnForwardFailure=yes \
+     -L 127.0.0.1:4321:127.0.0.1:4321 <remote-host>
    ```
 
    Open only the fresh authorization URL printed by step 2 in a local browser,
@@ -344,9 +353,11 @@ finishes; if standard input closes, the process exits and the callback becomes s
    forwarded loopback callback to the still-running remote listener. Never paste
    or publish the callback URL, authorization code, or bearer token into chat,
    issues, files, or command history.
-4. Verify in order: `codex mcp list` first, then one live Native tool call (for
-   example `bootstrap`, or `quickstart` once on first use). The list view alone
-   does not prove authenticated calls work.
+4. Verify in order: `codex mcp list` first, then reload the client or start a
+   new Codex conversation and make one live Native tool call. In a new
+   conversation that is `bootstrap` (or `quickstart` once for first use); in
+   an existing conversation, use a read call with its existing `run_key`.
+   The list view alone does not prove authenticated calls work.
 
 ### Claude Code
 

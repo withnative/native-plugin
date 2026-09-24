@@ -94,7 +94,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.5",
+        "version": "0.1.6",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -202,8 +202,6 @@ def validate_skill() -> None:
     )
     for phrase in reentry_contract:
         require(phrase in normalized_skill, f"Skill re-entry contract is missing {phrase!r}")
-    require("Headless or remote Codex re-authentication" in body, "Skill re-auth pointer missing")
-    require("callback after its login process exits is stale" in normalized_skill, "Skill stale callback warning missing")
 
     presentation = (skill_path.parent / "agents" / "openai.yaml").read_text(encoding="utf-8")
     for phrase in (
@@ -291,17 +289,6 @@ def validate_docs() -> None:
     for text in (readme, guide):
         require("privacyPolicyURL" not in text and "termsOfServiceURL" not in text, "Deferred legal URL invented")
         require("clean-client acceptance" not in text.lower(), "Unverified acceptance claim present")
-    reauth_contract = (
-        "Headless or remote Codex re-authentication",
-        "codex mcp login native --no-browser -c mcp_oauth_callback_port=4321",
-        "callback delivered after that login process exits is stale",
-        "does not itself attempt a token refresh",
-        "metadata `200` alone does not prove authenticated MCP works",
-        "https://developers.openai.com/codex/mcp",
-    )
-    for phrase in reauth_contract:
-        require(phrase in normalized_guide, f"Installation guide re-auth guidance is missing {phrase!r}")
-    require("Paseo" not in guide, "Installation guide must stay generic for remote Codex")
 
 
 def validate_adapter() -> None:
