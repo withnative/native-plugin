@@ -94,7 +94,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.5",
+        "version": "0.1.6",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",

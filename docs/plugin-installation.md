@@ -295,6 +295,69 @@ url = "https://plugin.withnative.ai/mcp"
 After authentication, use `codex mcp list` again to verify the configured server. In the
 Codex TUI, `/mcp` shows active MCP servers.
 
+### Headless or remote Codex re-authentication (expired Native OAuth)
+
+Use this route when Codex runs headless or over SSH and the `native` server reports
+expired or missing OAuth. Do not reuse an old authorization URL: every
+`codex mcp login native` run issues a fresh URL and callback binding, and a
+callback delivered after that login process exits is stale and will not complete.
+Keep the login process and its standard input open until the browser sign-in
+finishes; if standard input closes, the process exits and the callback becomes stale.
+
+1. Inspect state without changing it:
+
+   ```sh
+   codex mcp list
+   ```
+
+   Treat `Not logged in` as a strong clue of a client credential problem, not proof
+   of a Native outage or even certain current failure: `list` does not itself
+   attempt a token refresh. Separate client auth from service
+   reachability with a live Native tool call plus an independent public metadata
+   check. For example, this checks whether Native's OAuth discovery endpoint is
+   reachable without using a credential:
+
+   ```sh
+   curl -fsS -o /dev/null -w '%{http_code}\n' \
+     https://plugin.withnative.ai/.well-known/oauth-protected-resource
+   ```
+
+   A metadata `200` alone does not prove authenticated MCP works.
+2. On the remote host, start one fresh login with a per-login fixed listener port.
+   On Codex CLI `0.156.1`, `--no-browser` prints the authorization URL and keeps a
+   listener active on the configured loopback port while standard input stays open:
+
+   ```sh
+   codex mcp login native --no-browser -c mcp_oauth_callback_port=4321
+   ```
+
+   This port override applies only to this login. Without it, Codex chooses an
+   ephemeral port. See
+   [Model Context Protocol](https://developers.openai.com/codex/mcp) under "OAuth
+   client registration and callbacks": local callback URLs bind locally and
+   non-local callback URLs bind to `0.0.0.0`.
+3. From your local machine, forward the same loopback port to the remote listener
+   over a safe transport and keep that SSH session open:
+
+   ```sh
+   ssh -N -o ExitOnForwardFailure=yes \
+     -L 127.0.0.1:4321:127.0.0.1:4321 <remote-host>
+   ```
+
+   If port `4321` is occupied on either machine, choose a free port and replace
+   `4321` in both commands with that port.
+
+   Open only the fresh authorization URL printed by step 2 in a local browser,
+   complete Native sign-in there, and let the provider redirect back through the
+   forwarded loopback callback to the still-running remote listener. Never paste
+   or publish the callback URL, authorization code, or bearer token into chat,
+   issues, files, or command history.
+4. Verify in order: `codex mcp list` first, then reload the client or start a
+   new Codex conversation and make one live Native tool call. In a new
+   conversation that is `bootstrap` (or `quickstart` once for first use); in
+   an existing conversation, use a read call with its existing `run_key`.
+   The list view alone does not prove authenticated calls work.
+
 ### Claude Code
 
 Add Native as a user-scoped remote HTTP server, then verify it:
