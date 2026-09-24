@@ -62,9 +62,13 @@ shape does not. Keep the Native package distinct from the hosted MCP connection.
    non-interactive install — yours or the person's terminal commands — does not complete
    OAuth sign-in by itself. Name the login command as the immediate next action (see table),
    and verify it: the plugin can list as installed while Native's tools stay unavailable and
-   the `native` MCP server shows disconnected or asks for authentication. The terminal login
-   is the reliable route; it opens the browser sign-in window (on headless or SSH sessions,
-   use `claude mcp login native --no-browser`). If the desktop client offers its own
+   the    `native` MCP server shows disconnected or asks for authentication. The terminal login
+   is the reliable route; it opens the browser sign-in window. On headless or SSH
+   sessions, add `--no-browser` (`claude mcp login native --no-browser`,
+   `codex mcp login native --no-browser`): open the printed authorization URL in a
+   local browser, complete sign-in, and paste the full callback URL back when
+   prompted. Codex accepts the pasted URL even when the callback page cannot load,
+   so no SSH port forwarding is needed. If the desktop client offers its own
    authorisation control, that may also work, but do not rely on it — if the tools are still
    unavailable after install, run the terminal login.
 5. Use the direct MCP connection below only as the final fallback. It supplies
@@ -323,35 +327,44 @@ finishes; if standard input closes, the process exits and the callback becomes s
    ```
 
    A metadata `200` alone does not prove authenticated MCP works.
-2. On the remote host, start one fresh login with a per-login fixed listener port.
-   On Codex CLI `0.156.1`, `--no-browser` prints the authorization URL and keeps a
-   listener active on the configured loopback port while standard input stays open:
+2. On the remote host, start one fresh login that prints its authorization URL
+   instead of opening a browser. On Codex CLI `0.156.1`, `--no-browser` prints
+   the authorization URL and then accepts the callback URL pasted back at its
+   prompt — "If the callback page cannot load, paste that URL here anyway" — so
+   no SSH port forwarding is needed:
+
+   ```sh
+   codex mcp login native --no-browser
+   ```
+
+   Open only that fresh authorization URL in a local browser, complete Native
+   sign-in there, and paste the full callback URL back at the still-running
+   remote prompt when asked. Keep the login process and its standard input open
+   until this finishes; if standard input closes, the process exits and the
+   callback becomes stale. Never paste or publish the callback URL,
+   authorization code, or bearer token into chat, issues, files, or command
+   history. See
+   [Model Context Protocol](https://developers.openai.com/codex/mcp) under "OAuth
+   client registration and callbacks": local callback URLs bind locally and
+   non-local callback URLs bind to `0.0.0.0`.
+3. Only if the paste-back route fails, fall back to a per-login fixed listener
+   port with local forwarding over a safe transport (keep that SSH session open):
 
    ```sh
    codex mcp login native --no-browser -c mcp_oauth_callback_port=4321
    ```
-
-   This port override applies only to this login. Without it, Codex chooses an
-   ephemeral port. See
-   [Model Context Protocol](https://developers.openai.com/codex/mcp) under "OAuth
-   client registration and callbacks": local callback URLs bind locally and
-   non-local callback URLs bind to `0.0.0.0`.
-3. From your local machine, forward the same loopback port to the remote listener
-   over a safe transport and keep that SSH session open:
 
    ```sh
    ssh -N -o ExitOnForwardFailure=yes \
      -L 127.0.0.1:4321:127.0.0.1:4321 <remote-host>
    ```
 
-   If port `4321` is occupied on either machine, choose a free port and replace
-   `4321` in both commands with that port.
-
-   Open only the fresh authorization URL printed by step 2 in a local browser,
-   complete Native sign-in there, and let the provider redirect back through the
-   forwarded loopback callback to the still-running remote listener. Never paste
-   or publish the callback URL, authorization code, or bearer token into chat,
-   issues, files, or command history.
+   This port override applies only to this login. Without it, Codex chooses an
+   ephemeral port. If port `4321` is occupied on either machine, choose a free
+   port and replace `4321` in both commands with that port. Open only the fresh
+   authorization URL printed by the login in a local browser, complete Native
+   sign-in there, and let the provider redirect back through the forwarded
+   loopback callback to the still-running remote listener.
 4. Verify in order: `codex mcp list` first, then reload the client or start a
    new Codex conversation and make one live Native tool call. In a new
    conversation that is `bootstrap` (or `quickstart` once for first use); in
@@ -370,7 +383,9 @@ claude mcp list
 In a Claude Code session, run `/mcp`; select Native's authentication action if shown and
 complete the browser sign-in through Claude Code. Claude Code stores and refreshes OAuth
 credentials through the host; do not obtain or paste a bearer token. `/mcp` also shows the
-connected server and its tool count.
+connected server and its tool count. On headless or SSH sessions, run
+`claude mcp login native --no-browser` from a terminal and paste the redirect URL
+back when prompted.
 
 This direct connection reaches Native's hosted MCP tools, but it is a subset of the
 packaged plugin experience: it does not include the `enter` skill or its proactive bootstrap
