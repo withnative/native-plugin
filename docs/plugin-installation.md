@@ -312,8 +312,7 @@ finishes; if standard input closes, the process exits and the callback becomes s
 
    Treat `Not logged in` as a strong clue of a client credential problem, not proof
    of a Native outage or even certain current failure: `list` does not itself
-   attempt a token refresh, and a credential-refresh defect has shown `Not logged
-   in` while a test Native call still worked. Separate client auth from service
+   attempt a token refresh. Separate client auth from service
    reachability with a live Native tool call plus an independent public metadata
    check. For example, this checks whether Native's OAuth discovery endpoint is
    reachable without using a credential:
@@ -325,18 +324,15 @@ finishes; if standard input closes, the process exits and the callback becomes s
 
    A metadata `200` alone does not prove authenticated MCP works.
 2. On the remote host, start one fresh login with a per-login fixed listener port.
-   Verified on Codex CLI `0.156.1` against an isolated mock OAuth server (no real
-   credentials): `--no-browser` still prints the authorization URL and keeps a
+   On Codex CLI `0.156.1`, `--no-browser` prints the authorization URL and keeps a
    listener active on the configured loopback port while standard input stays open:
 
    ```sh
    codex mcp login native --no-browser -c mcp_oauth_callback_port=4321
    ```
 
-   This is a one-login override. Do not commit a repo-wide fixed port and do not
-   change the plugin's `.mcp.json`: without an override Codex chooses an ephemeral
-   port, and a plugin `oauth.callbackPort` would override the global
-   `mcp_oauth_callback_port`. See
+   This port override applies only to this login. Without it, Codex chooses an
+   ephemeral port. See
    [Model Context Protocol](https://developers.openai.com/codex/mcp) under "OAuth
    client registration and callbacks": local callback URLs bind locally and
    non-local callback URLs bind to `0.0.0.0`.
@@ -347,6 +343,9 @@ finishes; if standard input closes, the process exits and the callback becomes s
    ssh -N -o ExitOnForwardFailure=yes \
      -L 127.0.0.1:4321:127.0.0.1:4321 <remote-host>
    ```
+
+   If port `4321` is occupied on either machine, choose a free port and replace
+   `4321` in both commands with that port.
 
    Open only the fresh authorization URL printed by step 2 in a local browser,
    complete Native sign-in there, and let the provider redirect back through the
