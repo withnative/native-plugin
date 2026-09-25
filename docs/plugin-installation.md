@@ -145,7 +145,8 @@ can produce duplicate skills and tools.
 
 Start a new conversation and say
 `Use Native's quickstart tool to help me finish setting up Native.` You can invoke Native
-explicitly as `@native`, select `$enter` where the client exposes skill selectors, or make
+explicitly as `@native`, select `$enter` (or `$connect` to sign in or reconnect) where the
+client exposes skill selectors, or make
 an ordinary request such as `What is current in my Native workspace?`
 
 ## Claude Code
@@ -187,7 +188,7 @@ administrator distribution.
 
 Start a new conversation and say
 `Use Native's quickstart tool to help me finish setting up Native.` To invoke the entry
-skill explicitly, use `/native:enter`.
+skill explicitly, use `/native:enter`; to sign in or reconnect, use `/native:connect`.
 
 ## Authentication and first use
 
