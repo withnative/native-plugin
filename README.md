@@ -182,9 +182,9 @@ scripts/validate.py      Standalone repository contract validation
 The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
 confirming sign-in to the person as soon as it completes, and `0.1.8` allowed an agent
-handling a live OAuth login to receive the callback URL in chat and complete the sign-in. The stdio adapter remains
-an unreleased `0.1.0` candidate behind its independent npm ownership and acceptance
-gates. Its source and pre-release documentation live in
+handling a live OAuth login to receive the callback URL in chat and complete the sign-in.
+The stdio adapter remains an unreleased `0.1.0` candidate behind its independent npm
+ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
 version is published to npm.
 

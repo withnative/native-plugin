@@ -214,7 +214,9 @@ codex mcp login native
 You are in the unauthorised state when the plugin lists as installed but
 Native's tools stay unavailable, or the `native` server shows disconnected or
 asks for authentication. Run the login command above, complete the browser
-sign-in, then restart or reload the client and start a new conversation.
+sign-in, then restart or reload the client and start a new conversation. The packaged
+`connect` skill (`/native:connect`, `$connect`) carries this install and sign-in guidance
+for agents; the `enter` skill takes over once Native's tools respond.
 
 The entry skill's broad trigger makes its activation proactive when durable context outside
 the visible conversation could materially change the answer or action, and before material
