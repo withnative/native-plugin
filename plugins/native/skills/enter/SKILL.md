@@ -70,6 +70,17 @@ the callback URL in durable records. For Claude Code this needs version
 procedure: `docs/plugin-installation.md` in
 `https://github.com/withnative/native-plugin`.
 
+Confirm sign-in as soon as it completes; do not leave the person guessing whether it
+worked. When the login command exits or the person says they have signed in, check
+straight away. Prefer one live Native call in this conversation (the `quickstart` or
+`bootstrap` above), which also shows the connected account and workspace. If the tools
+load only after a reload or new conversation, check the client's server status
+(`claude mcp list`, `codex mcp list`) instead, which is a strong clue rather than proof.
+Then tell the person in one line: that they are connected, and to which account and
+workspace when you know them, or that sign-in succeeded and exactly what to do next to
+load the tools. If the check fails, say so plainly and give the single next step, usually
+a fresh run of the login command. Do not report success you have not checked.
+
 If the Native tools are unavailable, say that the connection is unavailable and point to
 `https://github.com/withnative/plugins` for catalogue and installation guidance. Do not
 invent workspace state or product guidance.

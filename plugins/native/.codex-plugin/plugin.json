@@ -1,6 +1,6 @@
 {
   "name": "native",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Proactively recover relevant durable context and continue work through Native's hosted MCP service.",
   "author": {
     "name": "Native",
