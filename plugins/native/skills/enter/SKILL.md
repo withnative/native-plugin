@@ -1,6 +1,6 @@
 ---
 name: enter
-description: Use proactively whenever a task may plausibly depend on durable context outside the visible conversation, including prior work or decisions, ongoing projects, handoffs, compacted or summarised history, collaboration across sessions, agents, people, or tools, and questions about current workspace state. Also use when Native is connected and you are about to begin material work such as multi-step implementation, diagnosis, research, planning, changes to files or external state, or a reusable artifact—even when the person does not mention Native or ask you to record the work. Also use for explicit Native setup, exploration, troubleshooting, records or URLs, and requests to save this for later, remember, retrieve, resume, organise, update, or hand off durable work. Do not use for React Native or unrelated meanings of native, trivial self-contained requests, or work explicitly assigned to another system.
+description: Use proactively whenever a task may plausibly depend on durable context outside the visible conversation, including prior work or decisions, ongoing projects, handoffs, compacted or summarised history, collaboration across sessions, agents, people, or tools, and questions about current workspace state. Also use when Native is connected and you are about to begin material work such as multi-step implementation, diagnosis, research, planning, changes to files or external state, or a reusable artifact—even when the person does not mention Native or ask you to record the work. Also use for explicit Native exploration, troubleshooting, records or URLs, and requests to save this for later, remember, retrieve, resume, organise, update, or hand off durable work. Do not use for React Native or unrelated meanings of native, trivial self-contained requests, or work explicitly assigned to another system.
 ---
 
 # Enter Native
@@ -52,52 +52,8 @@ recovery, and hand-off.
 Activation permits relevant discovery, not unrelated writes. Make writes only when they
 are within the person's request and the current Native guidance permits them.
 
-If you are asked to install the plugin, first probe whether you can run the client CLI
-yourself (`claude plugin list`, `codex plugin list` — a bare `--version` check proves only
-that a binary resolves and does not authorise proceeding); if the list probe succeeds,
-install it rather than relaying commands. If the probe fails, or the install itself errors,
-ask whether the person prefers the terminal or the UI route — with a recommendation — then
-give instructions for that route only. Installation and authorisation are
-separate steps: after any non-interactive install, run or name the login
-command (`claude mcp login native`, `codex mcp login native`) as the immediate
-next action. On headless or SSH sessions, add `--no-browser`. If you control the
-still-running login prompt, the person may paste the full callback URL into
-agent chat for you to enter there; otherwise have them paste it directly at
-the terminal prompt. Explain that the URL contains a short-lived authorization
-code and remains in the chat transcript. Never ask for a bearer token or put
-the callback URL in durable records. For Claude Code this needs version
-`2.1.186` or later and `ssh -t` when using SSH. Full
-procedure: `docs/plugin-installation.md` in
-`https://github.com/withnative/native-plugin`.
-
-Confirm sign-in as soon as it completes; do not leave the person guessing whether it
-worked. When the login command exits or the person says they have signed in, check
-straight away. Prefer one live Native call in this conversation: the first-interaction
-`quickstart`/`bootstrap` above if Native has not yet been entered, whose response shows the
-connected account and workspace; otherwise one read call reusing the existing `run_key`.
-This check never justifies a second `bootstrap` or `quickstart`. If the tools
-load only after a reload or new conversation, check the client's server status
-(`claude mcp list`, `codex mcp list`) instead, which is a strong clue rather than proof.
-Then tell the person in one line: that they are connected, and to which account and
-workspace when you know them, or that sign-in succeeded and exactly what to do next to
-load the tools. If the check fails, say so plainly and give the single next step, usually
-a fresh run of the login command. Do not report success you have not checked.
-
-If the Native tools are unavailable, say that the connection is unavailable and point to
+If the Native tools are unavailable, or the person asks to install Native, sign in,
+reconnect, or repair expired authorisation, use the packaged `connect` skill. If it is not
+available either, say that the connection is unavailable and point to
 `https://github.com/withnative/plugins` for catalogue and installation guidance. Do not
 invent workspace state or product guidance.
-
-When Codex reports expired or missing Native OAuth on a headless or remote host,
-follow `docs/plugin-installation.md` ("Headless or remote Codex re-authentication"):
-`codex mcp list` is only a strong clue, then run one fresh
-`codex mcp login native --no-browser`, open only its fresh authorization URL
-locally, and enter the full callback URL at its still-running terminal prompt,
-even when the callback page cannot load. If you control that prompt, the person
-may send the URL in chat for you to enter. This path was verified with a mock
-OAuth server on Codex CLI `0.156.1`, not a live Native grant. Only if paste-back fails,
-retry with `-c mcp_oauth_callback_port=4321` plus local `ssh -L` forwarding to
-its still-running listener. Then reload the client or start
-a new conversation and verify with `list` plus one live Native tool call. In an
-existing conversation, reuse its `run_key` for the read call. Never reuse an old
-authorization URL: a callback after its
-login process exits is stale.

@@ -78,6 +78,7 @@ def validate_license() -> None:
         ROOT / "SECURITY.md": HTML_NOTICE,
         ROOT / "docs" / "plugin-installation.md": HTML_NOTICE,
         PLUGIN / "skills" / "enter" / "agents" / "openai.yaml": HASH_NOTICE,
+        PLUGIN / "skills" / "connect" / "agents" / "openai.yaml": HASH_NOTICE,
         ADAPTER / "README.md": HTML_NOTICE,
         ADAPTER / "THIRD_PARTY_NOTICES.md": HTML_NOTICE,
         ROOT / "scripts" / "validate.py": f"#!/usr/bin/env python3\n{HASH_NOTICE}",
@@ -94,7 +95,7 @@ def validate_manifests() -> None:
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
     common = {
         "name": "native",
-        "version": "0.1.9",
+        "version": "0.1.10",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -183,6 +184,7 @@ def validate_skill() -> None:
         "durable work anchor",
         "coordination,\nrecovery, and hand-off",
         "not unrelated writes",
+        "use the packaged `connect` skill",
         "https://github.com/withnative/plugins",
     )
     for phrase in body_contract:
@@ -202,6 +204,8 @@ def validate_skill() -> None:
     )
     for phrase in reentry_contract:
         require(phrase in normalized_skill, f"Skill re-entry contract is missing {phrase!r}")
+    for phrase in ("mcp login", "callback URL", "--no-browser"):
+        require(phrase not in body, f"Connection guidance belongs in the connect skill: {phrase!r}")
 
     presentation = (skill_path.parent / "agents" / "openai.yaml").read_text(encoding="utf-8")
     for phrase in (
@@ -213,6 +217,46 @@ def validate_skill() -> None:
         require(phrase in presentation, f"OpenAI presentation metadata is missing {phrase!r}")
 
 
+def validate_connect_skill() -> None:
+    skill_path = PLUGIN / "skills" / "connect" / "SKILL.md"
+    skill = skill_path.read_text(encoding="utf-8")
+    match = re.match(r"\A---\n(?P<header>.*?)\n---\n(?P<body>.*)\Z", skill, re.DOTALL)
+    require(match is not None, "Connect skill must contain YAML frontmatter")
+    header = match.group("header")
+    body = re.sub(r"\s+", " ", match.group("body"))
+    require(re.search(r"^name: connect$", header, re.MULTILINE) is not None, "Connect skill name drifted")
+    for phrase in (
+        "install, set up, sign in to, reconnect, or re-authorise Native",
+        "missing, disconnected, or report expired or missing OAuth",
+        "Do not use for ordinary Native work once connected",
+        "React Native",
+    ):
+        require(phrase in header, f"Connect skill activation contract is missing {phrase!r}")
+    for phrase in (
+        "belongs to the packaged `enter` skill",
+        "never justifies a second `bootstrap` or `quickstart`",
+        "first probe whether you can run the client CLI yourself",
+        "Installation and authorisation are separate steps",
+        "`claude mcp login native`, `codex mcp login native`",
+        "add `--no-browser`",
+        "Never ask for a bearer token or put the callback URL in durable records",
+        "Confirm sign-in as soon as it completes",
+        "Do not report success you have not checked",
+        "Headless or remote Codex re-authentication",
+        "Never reuse an old authorization URL",
+        "https://github.com/withnative/plugins",
+    ):
+        require(phrase in body, f"Connect skill contract is missing {phrase!r}")
+
+    presentation = (skill_path.parent / "agents" / "openai.yaml").read_text(encoding="utf-8")
+    for phrase in (
+        'display_name: "Connect to Native"',
+        "default_prompt: \"Use $connect ",
+        "allow_implicit_invocation: true",
+    ):
+        require(phrase in presentation, f"Connect presentation metadata is missing {phrase!r}")
+
+
 def validate_thin_boundary() -> None:
     expected = {
         ".claude-plugin/plugin.json",
@@ -220,6 +264,8 @@ def validate_thin_boundary() -> None:
         ".mcp.json",
         "skills/enter/SKILL.md",
         "skills/enter/agents/openai.yaml",
+        "skills/connect/SKILL.md",
+        "skills/connect/agents/openai.yaml",
     }
     actual = {
         path.relative_to(PLUGIN).as_posix()
@@ -246,6 +292,7 @@ def validate_docs() -> None:
     require("Installation still registers the shared" in readme, "README must explain marketplace registration")
     require("not itself a marketplace" in readme, "README must explain repository ownership")
     require("/native:enter" in readme and "/native:enter" in guide, "Native command documentation drifted")
+    require("/native:connect" in readme and "/native:connect" in guide, "Connect command documentation drifted")
     require("withnative/plugins" in readme and "withnative/plugins" in guide, "Shared marketplace instructions missing")
     require("https://plugin.withnative.ai/mcp" in readme and ENDPOINT in guide, "MCP endpoint docs drifted")
     require("clean-root repository was extracted" in readme, "Provenance statement missing")
@@ -386,6 +433,7 @@ def main() -> int:
         validate_manifests,
         validate_mcp,
         validate_skill,
+        validate_connect_skill,
         validate_thin_boundary,
         validate_docs,
         validate_adapter,

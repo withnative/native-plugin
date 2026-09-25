@@ -21,7 +21,10 @@ and before material work that should remain visible and resumable.
 
 The plugin is intentionally small. It adds:
 
-- the `enter` skill, exposed as `/native:enter` in Claude Code; and
+- the `enter` skill, exposed as `/native:enter` in Claude Code, which brings agents into
+  Native for ordinary work;
+- the `connect` skill, exposed as `/native:connect`, which handles installation, sign-in,
+  and reconnection, so that guidance loads only when it is needed; and
 - a hosted HTTPS MCP connection named `native` at `https://plugin.withnative.ai/mcp`.
 
 It does not include a local executable, shell hooks, credentials, copied workspace data, or
@@ -142,7 +145,8 @@ or reload the client if requested. In a fresh conversation, use:
 /native:enter
 ```
 
-Or ask: `Use Native's quickstart tool to help me finish setting up Native.`
+Or ask: `Use Native's quickstart tool to help me finish setting up Native.` If Native's
+tools are missing or its sign-in has expired, use `/native:connect`.
 
 ### Direct MCP fallback
 
@@ -169,17 +173,18 @@ authentication, troubleshooting, and stdio-only clients.
 ## Repository layout
 
 ```text
-plugins/native/          Native plugin manifests, MCP declaration, and enter skill
+plugins/native/          Native plugin manifests, MCP declaration, enter and connect skills
 packages/mcp-stdio/      Independently versioned stdio compatibility adapter
 docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.9` so that an agent confirms sign-in to the person as
-soon as it completes. `0.1.8` allowed an agent handling a live OAuth login to receive the
-callback URL in chat and complete the sign-in. The stdio adapter remains
-an unreleased `0.1.0` candidate behind its independent npm ownership and acceptance
-gates. Its source and pre-release documentation live in
+The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
+reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
+confirming sign-in to the person as soon as it completes, and `0.1.8` allowed an agent
+handling a live OAuth login to receive the callback URL in chat and complete the sign-in.
+The stdio adapter remains an unreleased `0.1.0` candidate behind its independent npm
+ownership and acceptance gates. Its source and pre-release documentation live in
 [`packages/mcp-stdio/`](packages/mcp-stdio/); do not use its `npx` examples until that exact
 version is published to npm.
 

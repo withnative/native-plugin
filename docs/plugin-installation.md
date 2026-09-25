@@ -145,7 +145,8 @@ can produce duplicate skills and tools.
 
 Start a new conversation and say
 `Use Native's quickstart tool to help me finish setting up Native.` You can invoke Native
-explicitly as `@native`, select `$enter` where the client exposes skill selectors, or make
+explicitly as `@native`, select `$enter` (or `$connect` to sign in or reconnect) where the
+client exposes skill selectors, or make
 an ordinary request such as `What is current in my Native workspace?`
 
 ## Claude Code
@@ -187,7 +188,7 @@ administrator distribution.
 
 Start a new conversation and say
 `Use Native's quickstart tool to help me finish setting up Native.` To invoke the entry
-skill explicitly, use `/native:enter`.
+skill explicitly, use `/native:enter`; to sign in or reconnect, use `/native:connect`.
 
 ## Authentication and first use
 
@@ -213,7 +214,9 @@ codex mcp login native
 You are in the unauthorised state when the plugin lists as installed but
 Native's tools stay unavailable, or the `native` server shows disconnected or
 asks for authentication. Run the login command above, complete the browser
-sign-in, then restart or reload the client and start a new conversation.
+sign-in, then restart or reload the client and start a new conversation. The packaged
+`connect` skill (`/native:connect`, `$connect`) carries this install and sign-in guidance
+for agents; the `enter` skill takes over once Native's tools respond.
 
 The entry skill's broad trigger makes its activation proactive when durable context outside
 the visible conversation could materially change the answer or action, and before material
