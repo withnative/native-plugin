@@ -74,7 +74,10 @@ shape does not. Keep the Native package distinct from the hosted MCP connection.
    isolated OAuth test when the callback page could not load; Native's live
    flow has not been tested this way. If the desktop client offers its own
    authorisation control, that may also work, but do not rely on it — if the tools are still
-   unavailable after install, run the terminal login.
+   unavailable after install, run the terminal login. As soon as sign-in completes, check
+   the connection (one live Native call if the tools are loaded, otherwise `claude mcp list`
+   or `codex mcp list`) and tell the person in one line whether they are connected, to which
+   account and workspace when known, and what to do next if the tools need a reload.
 5. Use the direct MCP connection below only as the final fallback. It supplies
    the hosted MCP tools but not the packaged skill or its proactive bootstrap
    behavior.
