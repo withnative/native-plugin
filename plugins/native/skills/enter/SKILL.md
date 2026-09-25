@@ -72,8 +72,10 @@ procedure: `docs/plugin-installation.md` in
 
 Confirm sign-in as soon as it completes; do not leave the person guessing whether it
 worked. When the login command exits or the person says they have signed in, check
-straight away. Prefer one live Native call in this conversation (the `quickstart` or
-`bootstrap` above), which also shows the connected account and workspace. If the tools
+straight away. Prefer one live Native call in this conversation: the first-interaction
+`quickstart`/`bootstrap` above if Native has not yet been entered, whose response shows the
+connected account and workspace; otherwise one read call reusing the existing `run_key`.
+This check never justifies a second `bootstrap` or `quickstart`. If the tools
 load only after a reload or new conversation, check the client's server status
 (`claude mcp list`, `codex mcp list`) instead, which is a strong clue rather than proof.
 Then tell the person in one line: that they are connected, and to which account and
