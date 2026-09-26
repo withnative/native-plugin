@@ -87,6 +87,7 @@ def validate_license() -> None:
         PLUGIN / "hooks" / "native_session_end.py": HASH_NOTICE,
         PLUGIN / "hooks" / "native_session_start.py": HASH_NOTICE,
         PLUGIN / "hooks" / "tests" / "test_anchor_claim.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_hook_configs.py": HASH_NOTICE,
         PLUGIN / "hooks" / "tests" / "test_post_tool_use.py": HASH_NOTICE,
         PLUGIN / "hooks" / "tests" / "test_session_hooks.py": HASH_NOTICE,
     }
@@ -327,13 +328,25 @@ def validate_hooks() -> None:
         command = entries[0]["hooks"][0]["command"]
         require("--host claude" in command, f"Claude {event} must scope state to claude")
         require("${CLAUDE_PLUGIN_ROOT}" in command, f"Claude {event} must use the plugin root")
+    claude_matchers = [entry.get("matcher", "") for entry in claude_hooks["PostToolUse"]]
+    require(
+        any("bootstrap" in matcher and "coordination_write" in matcher
+            for matcher in claude_matchers),
+        "Claude PostToolUse must filter to Native bootstrap/coordination_write",
+    )
     codex_hooks = load_json(hooks_dir / "codex.hooks.json")
     events = codex_hooks.get("hooks", {})
     for event in ("PostToolUse", "SessionStart", "SessionEnd"):
         require(event in events, f"Codex hook config is missing {event}")
         command = events[event][0]["hooks"][0]["command"]
         require("--host codex" in command, f"Codex {event} must scope state to codex")
-        require("${PLUGIN_ROOT}" in command, f"Codex {event} must use the plugin root")
+        require('"${PLUGIN_ROOT}"' in command, f"Codex {event} must quote the plugin root")
+    codex_matchers = [entry.get("matcher", "") for entry in events["PostToolUse"]]
+    require(
+        any("bootstrap" in matcher and "coordination_write" in matcher
+            for matcher in codex_matchers),
+        "Codex PostToolUse must filter to Native bootstrap/coordination_write",
+    )
     matchers = [entry.get("matcher", "") for entry in events["SessionStart"]]
     require("compact" in matchers, "Codex SessionStart must filter to compact")
     for script in (
@@ -359,6 +372,7 @@ def validate_thin_boundary() -> None:
         "hooks/native_session_end.py",
         "hooks/native_session_start.py",
         "hooks/tests/test_anchor_claim.py",
+        "hooks/tests/test_hook_configs.py",
         "hooks/tests/test_post_tool_use.py",
         "hooks/tests/test_session_hooks.py",
         "skills/enter/SKILL.md",
