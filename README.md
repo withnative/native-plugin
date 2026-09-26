@@ -25,11 +25,14 @@ The plugin is intentionally small. It adds:
   Native for ordinary work;
 - the `connect` skill, exposed as `/native:connect`, which handles installation, sign-in,
   and reconnection, so that guidance loads only when it is needed; and
-- a hosted HTTPS MCP connection named `native` at `https://plugin.withnative.ai/mcp`.
+- a hosted HTTPS MCP connection named `native` at `https://plugin.withnative.ai/mcp`;
+- optional local hooks for coding-host compaction that retain the Native run key and
+  prompt a bounded refresh in the next model context.
 
-It does not include a local executable, shell hooks, credentials, copied workspace data, or
-Native server code. Your client manages OAuth sign-in, and the hosted service remains the
-authoritative source for workspace state and current Native guidance.
+It does not include a local MCP server, credentials, copied workspace data, or Native
+server code. The hooks run Python scripts on the coding host after the client trusts
+them. Your client manages OAuth sign-in, and the hosted service remains the authoritative
+source for workspace state and current Native guidance.
 
 ## How agents enter Native
 
