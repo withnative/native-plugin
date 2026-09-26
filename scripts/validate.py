@@ -108,7 +108,7 @@ def validate_manifests() -> None:
     ),
     common = {
         "name": "native",
-        "version": "0.1.10",
+        "version": "0.1.11",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",

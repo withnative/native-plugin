@@ -225,7 +225,10 @@ not yet live; no live-host `session_id` stability test across a real compaction 
 run; there is no automatic full guidance restoration; and nothing here lets Native
 validate an issued `run_key` — only the `resolve` response determines validity.
 
-The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
+The plugin manifests use version `0.1.11`, which adopts portable Agent Plugins v1
+packaging (canonical root `plugin.json`/`mcp.json` with compatibility paths kept in
+sync) and documents the post-compaction refresh via `resolve` with the retained
+`run_key`. `0.1.10` moved installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
 confirming sign-in to the person as soon as it completes, and `0.1.8` allowed an agent
 handling a live OAuth login to receive the callback URL in chat and complete the sign-in.

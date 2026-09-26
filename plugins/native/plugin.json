@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "native",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Proactively recover relevant durable context and continue work through Native's hosted MCP service.",
   "author": {
     "name": "Native",
