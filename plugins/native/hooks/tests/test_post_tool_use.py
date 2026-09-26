@@ -41,7 +41,8 @@ class PostToolUseTest(unittest.TestCase):
         proc, state_dir = run_hook({
             "session_id": "sess-1",
             "tool_name": "mcp__native__bootstrap",
-            "tool_response": {"run_key": "rk-abc", "workspace": "demo"},
+            "tool_response": {"structuredContent": {"run_key": "rk-abc",
+                                                    "workspace": "demo"}},
         })
         self.assertEqual(proc.returncode, 0)
         self.assertEqual(proc.stdout, "")
@@ -64,6 +65,47 @@ class PostToolUseTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0)
         self.assertEqual(read_state(state_dir)["run_key"], "gibbon-sextant-ydbvnb")
 
+    def test_captures_run_key_from_run_context(self):
+        proc, state_dir = run_hook({
+            "session_id": "sess-1",
+            "tool_name": "mcp__plugin_native_native__bootstrap",
+            "tool_response": {"structuredContent": {"run_context": {"run_key": "rk-ctx"}}},
+        })
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(read_state(state_dir)["run_key"], "rk-ctx")
+
+    def test_ignores_quoted_run_key_in_unrelated_text(self):
+        text = 'A pasted note says "run_key": "rk-old-leaked" but means nothing.'
+        proc, state_dir = run_hook({
+            "session_id": "sess-1",
+            "tool_name": "mcp__plugin_native_native__bootstrap",
+            "tool_response": {
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": {"workspace": "acme"},
+            },
+        })
+        self.assertEqual(proc.returncode, 0)
+        self.assertIsNone(read_state(state_dir))
+
+    def test_rejects_error_response_carrying_run_key(self):
+        proc, state_dir = run_hook({
+            "session_id": "sess-1",
+            "tool_name": "mcp__native__bootstrap",
+            "tool_response": {"isError": True,
+                              "structuredContent": {"run_key": "rk-err"}},
+        })
+        self.assertEqual(proc.returncode, 0)
+        self.assertIsNone(read_state(state_dir))
+
+    def test_ignores_other_servers_bootstrap(self):
+        proc, state_dir = run_hook({
+            "session_id": "sess-1",
+            "tool_name": "mcp__other__bootstrap",
+            "tool_response": {"structuredContent": {"run_key": "rk-foreign"}},
+        })
+        self.assertEqual(proc.returncode, 0)
+        self.assertIsNone(read_state(state_dir))
+
     def test_ignores_failed_bootstrap(self):
         proc, state_dir = run_hook({
             "session_id": "sess-1",
@@ -77,7 +119,7 @@ class PostToolUseTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as state_dir:
             run_hook({
                 "session_id": "sess-1", "tool_name": "mcp__native__bootstrap",
-                "tool_response": {"run_key": "rk-abc"},
+                "tool_response": {"structuredContent": {"run_key": "rk-abc"}},
             }, state_dir=state_dir)
             proc, _ = run_hook({
                 "session_id": "sess-1",
@@ -93,8 +135,8 @@ class PostToolUseTest(unittest.TestCase):
             self.assertEqual(record["anchor"], "wi-42")
 
     def test_repeated_delivery_is_idempotent(self):
-        payload = {"session_id": "sess-1", "tool_name": "bootstrap",
-                   "tool_response": {"run_key": "rk-abc"}}
+        payload = {"session_id": "sess-1", "tool_name": "mcp__native__bootstrap",
+                   "tool_response": {"structuredContent": {"run_key": "rk-abc"}}}
         with tempfile.TemporaryDirectory() as state_dir:
             run_hook(payload, state_dir=state_dir)
             proc, _ = run_hook(payload, state_dir=state_dir)

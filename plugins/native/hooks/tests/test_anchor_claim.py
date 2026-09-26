@@ -94,6 +94,18 @@ class AnchorScopeTest(unittest.TestCase):
             run(POST_TOOL_USE, release("s1", "wi-2"), state_dir)
             self.assertEqual(read_state(state_dir)["anchor"], "wi-1")
 
+    def test_untargeted_release_preserves_anchor(self):
+        with tempfile.TemporaryDirectory() as state_dir:
+            run(POST_TOOL_USE, bootstrap("s1"), state_dir)
+            run(POST_TOOL_USE, claim("s1", "wi-1"), state_dir)
+            bare = release("s1", "wi-1")
+            del bare["tool_input"]["arguments"]
+            proc = run(POST_TOOL_USE, bare, state_dir)
+            self.assertEqual(proc.returncode, 0)
+            record = read_state(state_dir)
+            self.assertEqual(record["anchor"], "wi-1")
+            self.assertEqual(record["run_key"], "rk-1")
+
     def test_stale_mapping_yields_recoverable(self):
         with tempfile.TemporaryDirectory() as state_dir:
             stale = {"version": 1, "run_key": "rk-stale", "anchor": "wi-9",

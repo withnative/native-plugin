@@ -33,7 +33,7 @@ def run_script(script, payload, host="claude", state_dir=None):
 def seed(state_dir, session="sess-9", run_key="rk-kept", anchor="wi-7", host="claude"):
     proc, _ = run_script(POST_TOOL_USE, {
         "session_id": session, "tool_name": "mcp__native__bootstrap",
-        "tool_response": {"run_key": run_key}}, host=host, state_dir=state_dir)
+        "tool_response": {"structuredContent": {"run_key": run_key}}}, host=host, state_dir=state_dir)
     assert proc.returncode == 0
     proc, _ = run_script(POST_TOOL_USE, {
         "session_id": session, "tool_name": "mcp__native__coordination_write",

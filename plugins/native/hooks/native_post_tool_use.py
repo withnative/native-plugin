@@ -20,12 +20,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import native_hook_state as state
 
 MAX_STDIN = 1_000_000
-RUN_KEY_RE = re.compile(r'"run_key"\s*:\s*"([^"\n]{1,256})"')
 YAML_RUN_KEY_RE = re.compile(r'(?m)^[ \t]*run_key:[ \t]*&run_key[ \t]*"([^"\n]{1,256})"')
 ANCHOR_KEYS = ("record_id", "work_item_id", "anchor_record_id", "anchor")
+NATIVE_MARKER = "native"
+BOOTSTRAP_TOOL = "bootstrap"
 COORDINATION_TOOL = "coordination_write"
 CLAIM_OP = "start_work.claim"
 RELEASE_OP = "start_work.release"
+
+
+def _is_native_tool(tool: str) -> bool:
+    """Only Native's own namespaced MCP tools; never another server's."""
+    return NATIVE_MARKER in tool and (BOOTSTRAP_TOOL in tool or COORDINATION_TOOL in tool)
 
 
 def _find_value(node: object, key: str, depth: int = 0) -> object:
@@ -65,15 +71,23 @@ def _content_texts(response: object) -> list:
 
 
 def _extract_run_key(response: object) -> str | None:
-    found = _find_key(response, "run_key")  # structuredContent and plain fields
-    if found:
-        return found
+    """Only explicit sources: structuredContent run_key/run_context, or the
+    Native bootstrap continuation-YAML block in MCP content text. Error
+    responses and arbitrary quoted text never yield a key."""
+    if not isinstance(response, dict) or not _successful(response):
+        return None
+    structured = response.get("structuredContent")
+    if isinstance(structured, dict):
+        direct = state.bound(structured.get("run_key"))
+        if direct:
+            return direct
+        context = structured.get("run_context")
+        if isinstance(context, dict):
+            nested = state.bound(context.get("run_key"))
+            if nested:
+                return nested
     for text in _content_texts(response):
-        match = YAML_RUN_KEY_RE.search(text) or RUN_KEY_RE.search(text)
-        if match:
-            return match.group(1)
-    if response is not None:  # last resort: serialised form
-        match = RUN_KEY_RE.search(json.dumps(response)[:8192])
+        match = YAML_RUN_KEY_RE.search(text)
         if match:
             return match.group(1)
     return None
@@ -113,7 +127,9 @@ def _clear_anchor_if_released(host: str, session: str, target: str | None) -> No
     record = state.load(path)
     if not record.get("anchor"):
         return
-    if target is not None and target != record.get("anchor"):
+    if target is None:
+        return  # untargeted release must preserve the stored anchor
+    if target != record.get("anchor"):
         return
     state.remove_keys(path, ("anchor",))
 
@@ -135,13 +151,13 @@ def main() -> int:
         if session is None:
             return 0
         tool = str(payload.get("tool_name") or "").lower()
-        if not tool:
+        if not _is_native_tool(tool):
             return 0
         response = payload.get("tool_response")
         tool_input = payload.get("tool_input")
         host = state.sanitize_host(_flag_host())
         update: dict = {}
-        if "bootstrap" in tool and _successful(response):
+        if BOOTSTRAP_TOOL in tool and _successful(response):
             run_key = _extract_run_key(response)
             if run_key:
                 update["run_key"] = run_key
