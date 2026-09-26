@@ -93,6 +93,11 @@ def validate_license() -> None:
 def validate_manifests() -> None:
     codex = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
+    root = load_json(PLUGIN / "plugin.json")
+    require(
+        root.get("$schema") == "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        "Root plugin.json must declare the Agent Plugins v1 schema",
+    ),
     common = {
         "name": "native",
         "version": "0.1.10",
@@ -130,13 +135,36 @@ def validate_manifests() -> None:
     require(interface.get("capabilities") == ["Read", "Write"], "Capabilities drifted")
     require(interface.get("websiteURL") == "https://personal.withnative.ai/", "Website drifted")
     require(interface.get("defaultPrompt") == [DEFAULT_PROMPT], "Default prompt drifted")
+    portable_common = {k: v for k, v in common.items() if k not in {"skills", "mcpServers"}}
+    for key, value in portable_common.items():
+        require(root.get(key) == value, f"Root plugin.json has unexpected {key}")
+    require(root.get("license") == "MPL-2.0", "Root plugin.json license drifted")
+    require("skills" not in root, "Portable plugin.json must not declare skills")
+    require("mcpServers" not in root, "Portable plugin.json must not declare mcpServers")
+    overlay = ((root.get("extensions") or {}).get("com.openai") or {})
+    require(overlay.get("interface") == interface, "OpenAI overlay interface diverged")
+    require(
+        set(root) == set(portable_common) | {"$schema", "license", "extensions"},
+        "Root plugin.json contains unexpected fields",
+    )
 
 
 def validate_mcp() -> None:
     mcp = load_json(PLUGIN / ".mcp.json")
+    canonical = load_json(PLUGIN / "mcp.json")
     require(
-        mcp == {"mcpServers": {"native": {"type": "http", "url": ENDPOINT}}},
+        canonical.get("$schema") == "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+        "mcp.json must declare the Agent Plugins MCP schema",
+    )
+    expected_servers = {"native": {"type": "streamable-http", "url": ENDPOINT}}
+    require(
+        canonical.get("mcpServers") == expected_servers,
         "MCP declaration must contain only the canonical hosted Native server",
+    )
+    require(set(canonical) == {"$schema", "mcpServers"}, "mcp.json contains unexpected fields")
+    require(
+        mcp.get("mcpServers") == expected_servers,
+        "Compatibility .mcp.json diverged from canonical mcp.json",
     )
 
 
@@ -262,6 +290,8 @@ def validate_thin_boundary() -> None:
         ".claude-plugin/plugin.json",
         ".codex-plugin/plugin.json",
         ".mcp.json",
+        "mcp.json",
+        "plugin.json",
         "skills/enter/SKILL.md",
         "skills/enter/agents/openai.yaml",
         "skills/connect/SKILL.md",
