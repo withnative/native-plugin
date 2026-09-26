@@ -54,15 +54,16 @@ class SessionStartTest(unittest.TestCase):
             self.assertIn("Do not call bootstrap", cue)
             self.assertLessEqual(len(cue), 800)
 
-    def test_codex_envelope_uses_additional_context(self):
+    def test_codex_envelope_matches_documented_shape(self):
         with tempfile.TemporaryDirectory() as state_dir:
             seed(state_dir, host="codex")
             proc, _ = run_script(SESSION_START, {"session_id": "sess-9",
                                                 "source": "compact"}, host="codex",
                                  state_dir=state_dir)
             body = json.loads(proc.stdout)
-            self.assertIn("rk-kept", body["additionalContext"])
-            self.assertNotIn("hookSpecificOutput", body)
+            specific = body["hookSpecificOutput"]
+            self.assertEqual(specific["hookEventName"], "SessionStart")
+            self.assertIn("rk-kept", specific["additionalContext"])
 
     def test_missing_mapping_is_recoverable(self):
         with tempfile.TemporaryDirectory() as state_dir:
@@ -71,7 +72,10 @@ class SessionStartTest(unittest.TestCase):
             cue = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
             self.assertIn("unavailable", cue)
             self.assertIn("connect skill", cue)
+            self.assertIn("without a valid key", cue)
+            self.assertIn("enter skill", cue)
             self.assertNotIn("rk-", cue)
+            self.assertNotIn("Re-orient by reading", cue)
 
     def test_non_compact_source_stays_silent(self):
         for source in ("startup", "resume", "clear"):

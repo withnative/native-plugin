@@ -38,11 +38,14 @@ def full_cue(run_key: str, anchor: str | None) -> str:
 
 def recoverable_cue() -> str:
     return (
-        "Native compaction checkpoint unavailable: no retained bootstrap "
-        "run_key was captured for this session. Re-orient by reading "
-        "current Native context and effective guidance via the Native MCP "
-        "tools; do not invent workspace state. If the Native MCP tools are "
-        "unavailable, use the packaged connect skill."
+        "Native compaction checkpoint unavailable: no bootstrap run_key "
+        "was retained for this session, so prior Native run keys cannot be "
+        "reused and run-key-gated Native calls cannot be made. Continue "
+        "from what is visible in this conversation; do not invent Native "
+        "workspace state or call Native tools without a valid key. To "
+        "re-establish Native context, follow the packaged enter skill's "
+        "first-interaction rules; if the Native MCP tools are unavailable, "
+        "use the packaged connect skill."
     )[:MAX_CUE]
 
 
@@ -71,8 +74,9 @@ def main() -> int:
 
 
 def _envelope(host: str, cue: str) -> dict:
-    if host == "codex":
-        return {"additionalContext": cue}
+    # Both Claude Code and Codex document SessionStart additionalContext
+    # under hookSpecificOutput with the hookEventName repeated.
+    del host
     return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": cue}}
 
 

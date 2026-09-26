@@ -47,6 +47,23 @@ class PostToolUseTest(unittest.TestCase):
         self.assertEqual(proc.stdout, "")
         self.assertEqual(read_state(state_dir)["run_key"], "rk-abc")
 
+    def test_captures_run_key_from_continuation_yaml(self):
+        text = (
+            "# Internal continuation state\n```yaml\n"
+            'run_key: &run_key "gibbon-sextant-ydbvnb"\n'
+            "workspace: acme\n```"
+        )
+        proc, state_dir = run_hook({
+            "session_id": "sess-1",
+            "tool_name": "mcp__native__bootstrap",
+            "tool_response": {
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": {"workspace": "acme"},
+            },
+        })
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(read_state(state_dir)["run_key"], "gibbon-sextant-ydbvnb")
+
     def test_ignores_failed_bootstrap(self):
         proc, state_dir = run_hook({
             "session_id": "sess-1",

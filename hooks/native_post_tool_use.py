@@ -21,6 +21,7 @@ import native_hook_state as state
 
 MAX_STDIN = 1_000_000
 RUN_KEY_RE = re.compile(r'"run_key"\s*:\s*"([^"\n]{1,256})"')
+YAML_RUN_KEY_RE = re.compile(r'(?m)^[ \t]*run_key:[ \t]*&run_key[ \t]*"([^"\n]{1,256})"')
 ANCHOR_KEYS = ("work_item_id", "anchor_record_id", "record_id", "anchor")
 INTENT_HINTS = ("set_intent", "start_work", "claim", "get_run_activity", "intent")
 
@@ -40,6 +41,35 @@ def _find_key(node: object, key: str, depth: int = 0) -> str | None:
             found = _find_key(item, key, depth + 1)
             if found:
                 return found
+    return None
+
+
+def _content_texts(response: object) -> list:
+    """Raw text of MCP content blocks, where continuation YAML lives."""
+    texts = []
+    if isinstance(response, dict):
+        content = response.get("content")
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and isinstance(block.get("text"), str):
+                    texts.append(block["text"][:8192])
+                elif isinstance(block, str) and block:
+                    texts.append(block[:8192])
+    return texts
+
+
+def _extract_run_key(response: object) -> str | None:
+    found = _find_key(response, "run_key")  # structuredContent and plain fields
+    if found:
+        return found
+    for text in _content_texts(response):
+        match = YAML_RUN_KEY_RE.search(text) or RUN_KEY_RE.search(text)
+        if match:
+            return match.group(1)
+    if response is not None:  # last resort: serialised form
+        match = RUN_KEY_RE.search(json.dumps(response)[:8192])
+        if match:
+            return match.group(1)
     return None
 
 
@@ -66,10 +96,7 @@ def main() -> int:
         host = state.sanitize_host(_flag_host())
         update: dict = {}
         if "bootstrap" in tool and _successful(response):
-            run_key = _find_key(response, "run_key")
-            if run_key is None and response is not None:
-                match = RUN_KEY_RE.search(json.dumps(response)[:8192])
-                run_key = match.group(1) if match else None
+            run_key = _extract_run_key(response)
             if run_key:
                 update["run_key"] = run_key
         if any(hint in tool for hint in INTENT_HINTS) and _successful(response):
