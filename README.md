@@ -209,11 +209,21 @@ only the key and anchor, and expires after 7 days. Installing the plugin does no
 auto-trust its hooks: each host asks for review before they run, and the cue cannot
 restore guidance on its own — no server-side reads are performed.
 
-Remaining hook work needs a live host, not this repository: a session_id stability
-test confirming the host passes the same `session_id` to PostToolUse, SessionStart
-(compact), and SessionEnd across a real compaction, and any automatic full guidance
-restoration (re-reading standing guidance after compaction) is explicitly not
-implemented — the cue only re-orients the agent to read current Native context itself.
+Actual refresh behavior once the server `manage_instructions` action `resolve` is
+delivered: after a coding-host compact cue with a retained `run_key`, the agent calls
+`resolve` with that key (never `bootstrap`) and applies guidance only on
+`status:ready` with complete active entries at original user/workspace authority;
+invalid or unavailable keys surface recoverable state with no partial or frozen
+guides. Guidance read stays separate from task-state refresh: a known anchor reads
+the current record plus bounded recent history (labelled current vs recent, never
+claiming changed-since without a cursor), while no anchor falls back to retained
+intent and visible context or asking. Ordinary ChatGPT/Claude chat has no automatic
+hook and follows the same agent-led steps on visible compaction signs.
+
+Limits: `resolve` is pending server delivery, so the refresh path is specified but
+not yet live; no live-host `session_id` stability test across a real compaction has
+run; there is no automatic full guidance restoration; and nothing here lets Native
+validate an issued `run_key` — only the `resolve` response determines validity.
 
 The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added

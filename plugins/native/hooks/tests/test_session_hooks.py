@@ -58,6 +58,18 @@ class SessionStartTest(unittest.TestCase):
             self.assertIn("Do not call bootstrap", cue)
             self.assertLessEqual(len(cue), 800)
 
+    def test_max_length_keys_keep_resolve_directive(self):
+        with tempfile.TemporaryDirectory() as state_dir:
+            seed(state_dir, run_key="r" * 256, anchor="w" * 256)
+            proc, _ = run_script(SESSION_START, {"session_id": "sess-9",
+                                                "source": "compact"}, state_dir=state_dir)
+            self.assertEqual(proc.returncode, 0)
+            cue = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
+            self.assertLessEqual(len(cue), 800)
+            self.assertIn("resolve", cue)
+            self.assertIn("ready", cue)
+            self.assertIn("Do not call bootstrap", cue)
+
     def test_codex_envelope_matches_documented_shape(self):
         with tempfile.TemporaryDirectory() as state_dir:
             seed(state_dir, host="codex")

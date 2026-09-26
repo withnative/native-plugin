@@ -31,8 +31,8 @@ def full_cue(run_key: str, anchor: str | None) -> str:
     return (
         "Native compaction checkpoint: this conversation already bootstrapped "
         f"Native before compaction. Reuse run_key {run_key}{scope} on "
-        "subsequent Native calls; re-orient by reading current Native "
-        "context and effective guidance via the Native MCP tools. Do not "
+        "subsequent Native calls; call manage_instructions resolve with that "
+        "run_key and apply guidance only when it reports ready. Do not "
         "call bootstrap again, do not invent workspace state; if the Native "
         "MCP tools are unavailable, use the packaged connect skill."
     )[:MAX_CUE]
