@@ -1,0 +1,90 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+"""SessionStart hook: emit a small cue after context compaction.
+
+Acts only when the payload source is "compact"; all other sources stay
+silent. The cue carries the retained run_key/anchor (when captured) and
+directs the agent to re-orient via current Native context and effective
+guidance. It never tells the agent to call bootstrap and never pastes
+guide bodies (Codex additionalContext lands in developer context).
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import native_hook_state as state
+
+MAX_STDIN = 256_000
+MAX_CUE = 800
+
+
+def full_cue(run_key: str, anchor: str | None) -> str:
+    scope = f" on WorkItem {anchor}" if anchor else ""
+    return (
+        "Native compaction checkpoint: this conversation already bootstrapped "
+        f"Native before compaction. Reuse run_key {run_key}{scope} on "
+        "subsequent Native calls; re-orient by reading current Native "
+        "context and effective guidance via the Native MCP tools. Do not "
+        "call bootstrap again, do not invent workspace state; if the Native "
+        "MCP tools are unavailable, use the packaged connect skill."
+    )[:MAX_CUE]
+
+
+def recoverable_cue() -> str:
+    return (
+        "Native compaction checkpoint unavailable: no retained bootstrap "
+        "run_key was captured for this session. Re-orient by reading "
+        "current Native context and effective guidance via the Native MCP "
+        "tools; do not invent workspace state. If the Native MCP tools are "
+        "unavailable, use the packaged connect skill."
+    )[:MAX_CUE]
+
+
+def main() -> int:
+    try:
+        raw = sys.stdin.read(MAX_STDIN + 1)
+        payload = json.loads(raw[:MAX_STDIN])
+        if payload.get("source") != "compact":
+            return 0
+        host = state.sanitize_host(_flag_host())
+        session = state.sanitize_session(payload.get("session_id"))
+        record: dict = {}
+        if session is not None:
+            try:
+                root = state.default_root()
+            except ValueError:
+                root = ""
+            if root:
+                record = state.load(state.path_for(root, host, session))
+        run_key = state.bound(record.get("run_key"))
+        cue = full_cue(run_key, state.bound(record.get("anchor"))) if run_key else recoverable_cue()
+        print(json.dumps(_envelope(host, cue)))
+    except Exception:
+        pass
+    return 0
+
+
+def _envelope(host: str, cue: str) -> dict:
+    if host == "codex":
+        return {"additionalContext": cue}
+    return {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": cue}}
+
+
+def _flag_host() -> str | None:
+    args = sys.argv[1:]
+    for index, arg in enumerate(args):
+        if arg == "--host" and index + 1 < len(args):
+            return args[index + 1]
+        if arg.startswith("--host="):
+            return arg.split("=", 1)[1]
+    return None
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
