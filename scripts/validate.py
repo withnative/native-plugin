@@ -162,10 +162,20 @@ def validate_mcp() -> None:
         "MCP declaration must contain only the canonical hosted Native server",
     )
     require(set(canonical) == {"$schema", "mcpServers"}, "mcp.json contains unexpected fields")
+    legacy_servers = {"native": {"type": "http", "url": ENDPOINT}}
     require(
-        mcp.get("mcpServers") == expected_servers,
-        "Compatibility .mcp.json diverged from canonical mcp.json",
+        mcp.get("mcpServers") == legacy_servers,
+        "Compatibility .mcp.json must use the legacy http transport alias",
     )
+    http_aliases = {"http", "streamable-http"}
+    for name, server in canonical.get("mcpServers", {}).items():
+        legacy = mcp.get("mcpServers", {}).get(name)
+        require(legacy is not None, f"Compatibility .mcp.json is missing server {name!r}")
+        require(legacy.get("url") == server.get("url"), f"Server {name!r} endpoint diverged")
+        require(
+            server.get("type") in http_aliases and legacy.get("type") in http_aliases,
+            f"Server {name!r} transport must be the known http alias pair",
+        )
 
 
 def validate_skill() -> None:

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "native": {
-      "type": "streamable-http",
+      "type": "http",
       "url": "https://plugin.withnative.ai/mcp"
     }
   }

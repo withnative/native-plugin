@@ -186,7 +186,8 @@ carries portable identity plus the OpenAI `extensions.com.openai` presentation o
 `plugins/native/mcp.json` declares the hosted `native` server with the required
 `streamable-http` transport. The `.claude-plugin/`, `.codex-plugin/`, and `.mcp.json`
 paths remain only for Claude Code and older Codex compatibility and must not diverge
-from the canonical metadata, endpoint, or transport.
+from the canonical metadata or endpoint; the compatibility `.mcp.json` keeps the
+legacy `http` transport value, which is the known alias of canonical `streamable-http`.
 
 The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
