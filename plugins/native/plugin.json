@@ -1,0 +1,30 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "native",
+  "version": "0.1.10",
+  "description": "Proactively recover relevant durable context and continue work through Native's hosted MCP service.",
+  "author": {
+    "name": "Native",
+    "url": "https://www.withnative.ai/"
+  },
+  "homepage": "https://personal.withnative.ai/",
+  "repository": "https://github.com/withnative/native-plugin",
+  "license": "MPL-2.0",
+  "keywords": ["native", "workspace", "context", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Native",
+        "shortDescription": "Proactively recover relevant durable context.",
+        "longDescription": "Connect to Native's hosted MCP service to check for context beyond the visible conversation, recover what matters, continue work, and record requested updates.",
+        "developerName": "Native",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://personal.withnative.ai/",
+        "defaultPrompt": [
+          "Use $enter to check Native for context beyond this conversation, recover what matters, and help me continue this work."
+        ]
+      }
+    }
+  }
+}
