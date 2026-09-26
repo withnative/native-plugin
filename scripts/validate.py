@@ -82,6 +82,13 @@ def validate_license() -> None:
         ADAPTER / "README.md": HTML_NOTICE,
         ADAPTER / "THIRD_PARTY_NOTICES.md": HTML_NOTICE,
         ROOT / "scripts" / "validate.py": f"#!/usr/bin/env python3\n{HASH_NOTICE}",
+        PLUGIN / "hooks" / "native_hook_state.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "native_post_tool_use.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "native_session_end.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "native_session_start.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_anchor_claim.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_post_tool_use.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_session_hooks.py": HASH_NOTICE,
     }
     for path, prefix in notice_prefixes.items():
         require(
@@ -118,7 +125,14 @@ def validate_manifests() -> None:
         "Claude manifest contains unexpected fields",
     )
     interface = codex.get("interface", {})
-    require(set(codex) == set(common) | {"interface"}, "Codex manifest contains unexpected fields")
+    require(
+        set(codex) == set(common) | {"interface", "hooks"},
+        "Codex manifest contains unexpected fields",
+    )
+    require(
+        codex.get("hooks") == "./hooks/codex.hooks.json",
+        "Codex compat hooks must reference the Codex hook config",
+    )
     require(interface.get("displayName") == "Native", "Codex display name must be Native")
     require(
         interface.get("shortDescription") == "Proactively recover relevant durable context.",
@@ -143,6 +157,14 @@ def validate_manifests() -> None:
     require("mcpServers" not in root, "Portable plugin.json must not declare mcpServers")
     overlay = ((root.get("extensions") or {}).get("com.openai") or {})
     require(overlay.get("interface") == interface, "OpenAI overlay interface diverged")
+    require(
+        overlay.get("hooks") == "./hooks/codex.hooks.json",
+        "OpenAI overlay must reference the Codex hook config",
+    )
+    require(
+        overlay.get("hooks") != "./hooks/hooks.json",
+        "Portable Codex must not reference the Claude default hook config",
+    )
     require(
         set(root) == set(portable_common) | {"$schema", "license", "extensions"},
         "Root plugin.json contains unexpected fields",
@@ -295,6 +317,34 @@ def validate_connect_skill() -> None:
         require(phrase in presentation, f"Connect presentation metadata is missing {phrase!r}")
 
 
+def validate_hooks() -> None:
+    hooks_dir = PLUGIN / "hooks"
+    claude_hooks = load_json(hooks_dir / "hooks.json").get("hooks", {})
+    for event in ("PostToolUse", "SessionStart", "SessionEnd"):
+        require(event in claude_hooks, f"Claude hook config is missing {event}")
+        entries = claude_hooks[event]
+        require(isinstance(entries, list) and entries, f"Claude {event} must list hooks")
+        command = entries[0]["hooks"][0]["command"]
+        require("--host claude" in command, f"Claude {event} must scope state to claude")
+        require("${CLAUDE_PLUGIN_ROOT}" in command, f"Claude {event} must use the plugin root")
+    codex_hooks = load_json(hooks_dir / "codex.hooks.json")
+    events = codex_hooks.get("hooks", {})
+    for event in ("PostToolUse", "SessionStart", "SessionEnd"):
+        require(event in events, f"Codex hook config is missing {event}")
+        command = events[event][0]["hooks"][0]["command"]
+        require("--host codex" in command, f"Codex {event} must scope state to codex")
+        require("${PLUGIN_ROOT}" in command, f"Codex {event} must use the plugin root")
+    matchers = [entry.get("matcher", "") for entry in events["SessionStart"]]
+    require("compact" in matchers, "Codex SessionStart must filter to compact")
+    for script in (
+        "native_hook_state.py",
+        "native_post_tool_use.py",
+        "native_session_end.py",
+        "native_session_start.py",
+    ):
+        require((hooks_dir / script).exists(), f"Hook script {script} must ship in the plugin")
+
+
 def validate_thin_boundary() -> None:
     expected = {
         ".claude-plugin/plugin.json",
@@ -302,6 +352,15 @@ def validate_thin_boundary() -> None:
         ".mcp.json",
         "mcp.json",
         "plugin.json",
+        "hooks/hooks.json",
+        "hooks/codex.hooks.json",
+        "hooks/native_hook_state.py",
+        "hooks/native_post_tool_use.py",
+        "hooks/native_session_end.py",
+        "hooks/native_session_start.py",
+        "hooks/tests/test_anchor_claim.py",
+        "hooks/tests/test_post_tool_use.py",
+        "hooks/tests/test_session_hooks.py",
         "skills/enter/SKILL.md",
         "skills/enter/agents/openai.yaml",
         "skills/connect/SKILL.md",
@@ -310,7 +369,7 @@ def validate_thin_boundary() -> None:
     actual = {
         path.relative_to(PLUGIN).as_posix()
         for path in PLUGIN.rglob("*")
-        if path.is_file()
+        if path.is_file() and "__pycache__" not in path.parts
     }
     require(actual == expected, f"Thin plugin file boundary drifted: {sorted(actual ^ expected)}")
     for path in PLUGIN.rglob("*"):
@@ -474,6 +533,7 @@ def main() -> int:
         validate_mcp,
         validate_skill,
         validate_connect_skill,
+        validate_hooks,
         validate_thin_boundary,
         validate_docs,
         validate_adapter,

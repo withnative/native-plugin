@@ -1,0 +1,38 @@
+{
+  "description": "Native compaction hooks: retain the bootstrap run_key and WorkItem anchor across context compaction.",
+  "hooks": {
+  "PostToolUse": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/native_post_tool_use.py --host claude",
+          "timeout": 30
+        }
+      ]
+    }
+  ],
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/native_session_start.py --host claude",
+          "timeout": 30
+        }
+      ]
+    }
+  ],
+  "SessionEnd": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python3 \"${CLAUDE_PLUGIN_ROOT}\"/hooks/native_session_end.py --host claude",
+          "timeout": 3
+        }
+      ]
+    }
+  ]
+  }
+}
