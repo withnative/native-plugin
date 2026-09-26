@@ -396,7 +396,7 @@ def validate_thin_boundary() -> None:
     }
     require(actual == expected, f"Thin plugin file boundary drifted: {sorted(actual ^ expected)}")
     for path in PLUGIN.rglob("*"):
-        if path.is_file():
+        if path.is_file() and "__pycache__" not in path.parts:
             text = path.read_text(encoding="utf-8")
             require("[TODO:" not in text, f"Placeholder remains in {path.relative_to(ROOT)}")
             require("staging.plugin.withnative.ai" not in text, "Plugin must use production URL")
