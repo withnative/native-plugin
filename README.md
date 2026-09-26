@@ -250,7 +250,16 @@ evidence, dated 2026-09-26 and caveated: on Codex 0.157.0, hook `session_id`
 equals the session `thread_id`, the MCP result envelope is `content` plus
 `structuredContent`, and a `withnative`-marketplace install exposes
 `mcp__native__bootstrap` (synthetic servers/data; production OAuth-gated tools
-were not callable, so real bootstrap capture on Codex remains unproven). On
+were not callable, so real bootstrap capture on Codex remains unproven). Codex CLI
+0.157.0 and 0.157.1 did not discover bundled hooks from local-marketplace
+installs: `hooks/list` via app-server returned zero plugin entries (a minimal
+probe plugin included), and no plugin hook executed in `exec` or app-server
+sessions, so the automatic coding-host compact cue is unverified and unavailable
+in those versions outside a TUI trust-review path, which itself exits
+immediately in headless terminals here. A user-level copy of the Codex hook
+entries is not presented as a working path: user-level hooks fired in `exec`
+but not in app-server turns, so the fallback compact cue is likewise unverified
+live. On
 Claude Code 2.1.281, a manual `/compact` accepted the SessionStart
 `additionalContext` cue and `/exit` SessionEnd removed the namespaced state
 file for the same seeded `session_id`, proving lookup/cleanup — but that mapping
