@@ -192,14 +192,25 @@ legacy `http` transport value, which is the known alias of canonical `streamable
 
 `plugins/native/hooks/` ships the compaction-hook adapters with their tests and two
 host hook configs: the default `hooks/hooks.json` for Claude Code and the separate
-`hooks/codex.hooks.json` referenced from `extensions.com.openai.hooks` (and the legacy
-`.codex-plugin/plugin.json`) for Codex, so portable Codex never registers hooks twice.
-PostToolUse captures the bootstrap `run_key` and WorkItem anchor, SessionStart on
+`hooks/codex.hooks.json` referenced from both `extensions.com.openai.hooks` and the
+legacy `.codex-plugin/plugin.json`, per the official rule that the OpenAI extension
+replaces rather than merges with the legacy overlay — both references stay so older
+and newer Codex resolve the same Codex config. PostToolUse is host-filtered to Native
+`bootstrap`/`coordination_write` tool names and the adapter additionally gates to
+Native-namespaced tools; it captures the bootstrap `run_key` (only from explicit
+`structuredContent` or bootstrap continuation YAML, never from arbitrary quoted text)
+and the WorkItem anchor. SessionStart on
 compact emits a short re-orientation cue without re-bootstrapping, and SessionEnd
 removes the session record. Hook state stays in the host plugin-data directory, keeps
 only the key and anchor, and expires after 7 days. Installing the plugin does not
 auto-trust its hooks: each host asks for review before they run, and the cue cannot
 restore guidance on its own — no server-side reads are performed.
+
+Remaining hook work needs a live host, not this repository: a session_id stability
+test confirming the host passes the same `session_id` to PostToolUse, SessionStart
+(compact), and SessionEnd across a real compaction, and any automatic full guidance
+restoration (re-reading standing guidance after compaction) is explicitly not
+implemented — the cue only re-orients the agent to read current Native context itself.
 
 The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
