@@ -25,16 +25,19 @@ the underlying aim materially changes, call `set_intent` with that same `run_key
 
 After context compaction on a coding host, a SessionStart hook may have emitted a
 compaction cue carrying the retained `run_key` (and WorkItem anchor when one was
-claimed). When such a cue is present, refresh in this order without calling
+claimed). A visible summary may also retain the original key. When the key is
+available, refresh in this order without calling
 `bootstrap` again in the same conversation:
 
 - Resolve guidance first: call the Native `manage_instructions` action `resolve`
-  with the retained `run_key`. Apply guidance only when it reports `status:ready`
-  with complete active entries, at its original user/workspace authority. The
-  retained key is not assumed valid: if `resolve` reports it invalid or expired,
-  or the Native tools are unavailable, do not apply partial or frozen guides —
-  surface the recoverable state and ask the person how to proceed instead of
-  calling `bootstrap` again in this conversation.
+  with the retained `run_key`. Apply guidance only when `instructions.status`
+  is `ready` with complete active entries, at its original user/workspace
+  authority. Native does not verify that a well-formed run key was issued; the
+  key's continuity comes from the host mapping or visible conversation. If
+  guidance resolution is invalid, do not apply partial or frozen guides;
+  surface its diagnostics and repair the source when authorized. If the Native
+  tools are unavailable, use `connect`. Neither condition calls for another
+  `bootstrap` in this conversation.
 - Refresh task state separately from guidance: with a known anchor, read the
   current record and bounded recent history; label current versus recent, and
   never claim changed-since without a cursor. Without an anchor, use retained
@@ -43,7 +46,10 @@ claimed). When such a cue is present, refresh in this order without calling
 
 Ordinary ChatGPT/Claude chat has no automatic compaction hook. When context
 uncertainty or a visible summary indicates compaction there, apply the same
-agent-led steps without claiming automatic detection.
+agent-led steps when the original key is available, without claiming automatic
+detection. If the key was lost, explain that Native run continuity cannot be
+recovered from the visible context; continue from available evidence or ask for
+the missing context. Do not bootstrap again merely because of compaction.
 
 Before the first successful `bootstrap` response, if bootstrap fails with a connection-pool
 timeout, transient transport failure, or HTTP 502/503/504 before returning a usable run key,

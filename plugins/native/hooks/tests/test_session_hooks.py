@@ -88,8 +88,8 @@ class SessionStartTest(unittest.TestCase):
             cue = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
             self.assertIn("unavailable", cue)
             self.assertIn("connect skill", cue)
-            self.assertIn("without a valid key", cue)
-            self.assertIn("enter skill", cue)
+            self.assertIn("original key is still visible", cue)
+            self.assertIn("call bootstrap merely because of compaction", cue)
             self.assertNotIn("rk-", cue)
             self.assertNotIn("Re-orient by reading", cue)
 

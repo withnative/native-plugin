@@ -41,13 +41,12 @@ def full_cue(run_key: str, anchor: str | None) -> str:
 def recoverable_cue() -> str:
     return (
         "Native compaction checkpoint unavailable: no bootstrap run_key "
-        "was retained for this session, so prior Native run keys cannot be "
-        "reused and run-key-gated Native calls cannot be made. Continue "
-        "from what is visible in this conversation; do not invent Native "
-        "workspace state or call Native tools without a valid key. To "
-        "re-establish Native context, follow the packaged enter skill's "
-        "first-interaction rules; if the Native MCP tools are unavailable, "
-        "use the packaged connect skill."
+        "was captured in this host mapping. If the original key is still "
+        "visible in the conversation summary, reuse it for the current "
+        "guidance and task reads. Otherwise, run continuity is unavailable: "
+        "continue from visible evidence or ask for context. Do not invent "
+        "Native state or call bootstrap merely because of compaction. If "
+        "Native MCP tools are unavailable, use the packaged connect skill."
     )[:MAX_CUE]
 
 

@@ -91,9 +91,9 @@ class HookConfigTest(unittest.TestCase):
             legacy = json.load(handle)
         self.assertEqual(overlay.get("hooks"), "./hooks/codex.hooks.json")
         self.assertEqual(legacy.get("hooks"), "./hooks/codex.hooks.json")
-        self.assertNotIn("hooks", json.load(
-            open(os.path.join(PLUGIN, ".claude-plugin", "plugin.json"),
-                 encoding="utf-8")))
+        with open(os.path.join(PLUGIN, ".claude-plugin", "plugin.json"),
+                  encoding="utf-8") as handle:
+            self.assertNotIn("hooks", json.load(handle))
 
 
 if __name__ == "__main__":
