@@ -173,9 +173,10 @@ authentication, troubleshooting, and stdio-only clients.
 ## Repository layout
 
 ```text
-plugins/native/          Portable Agent Plugins manifests, compat paths, enter and connect skills
+plugins/native/          Portable Agent Plugins manifests, compat paths, hooks, enter and connect skills
 plugins/native/plugin.json + mcp.json  Canonical packaging (skills/ and MCP auto-discovered)
 plugins/native/.claude-plugin/ + .codex-plugin/ + .mcp.json  Compatibility paths (kept in sync)
+plugins/native/hooks/    Compaction-hook adapters, tests, and host hook configs
 packages/mcp-stdio/      Independently versioned stdio compatibility adapter
 docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
@@ -188,6 +189,17 @@ carries portable identity plus the OpenAI `extensions.com.openai` presentation o
 paths remain only for Claude Code and older Codex compatibility and must not diverge
 from the canonical metadata or endpoint; the compatibility `.mcp.json` keeps the
 legacy `http` transport value, which is the known alias of canonical `streamable-http`.
+
+`plugins/native/hooks/` ships the compaction-hook adapters with their tests and two
+host hook configs: the default `hooks/hooks.json` for Claude Code and the separate
+`hooks/codex.hooks.json` referenced from `extensions.com.openai.hooks` (and the legacy
+`.codex-plugin/plugin.json`) for Codex, so portable Codex never registers hooks twice.
+PostToolUse captures the bootstrap `run_key` and WorkItem anchor, SessionStart on
+compact emits a short re-orientation cue without re-bootstrapping, and SessionEnd
+removes the session record. Hook state stays in the host plugin-data directory, keeps
+only the key and anchor, and expires after 7 days. Installing the plugin does not
+auto-trust its hooks: each host asks for review before they run, and the cue cannot
+restore guidance on its own — no server-side reads are performed.
 
 The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
@@ -204,6 +216,7 @@ Run the repository checks with:
 
 ```sh
 python3 scripts/validate.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/native/hooks/tests
 npm ci --prefix packages/mcp-stdio
 npm run check --prefix packages/mcp-stdio
 ```
