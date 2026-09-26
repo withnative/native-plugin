@@ -14,6 +14,7 @@ import json
 import os
 import re
 import sys
+import time
 
 VERSION = 1
 MAX_VALUE_LEN = 256
@@ -27,6 +28,10 @@ def default_root() -> str:
         if not os.path.isabs(override):
             raise ValueError("NATIVE_COMPACTION_STATE_DIR must be absolute")
         return override
+    for env_key in ("CLAUDE_PLUGIN_DATA", "PLUGIN_DATA"):
+        candidate = os.environ.get(env_key)
+        if candidate and os.path.isabs(candidate):
+            return os.path.join(candidate, "native-compaction-hooks")
     if sys.platform == "win32":
         base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
         return os.path.join(base, "Native", "compaction-hooks")
@@ -63,12 +68,27 @@ def load(path: str) -> dict:
 
 
 def save_merge(path: str, update: dict) -> None:
-    directory = os.path.dirname(path)
-    os.makedirs(directory, mode=0o700, exist_ok=True)
-    _harden(directory, 0o700)
     record = load(path)
     record.update({k: v for k, v in update.items() if v is not None})
     record["version"] = VERSION
+    record["updated_at"] = int(time.time())
+    _write_atomic(path, record)
+
+
+def remove_keys(path: str, keys: tuple) -> None:
+    record = load(path)
+    if not any(key in record for key in keys):
+        return
+    for key in keys:
+        record.pop(key, None)
+    record["version"] = VERSION
+    _write_atomic(path, record)
+
+
+def _write_atomic(path: str, record: dict) -> None:
+    directory = os.path.dirname(path)
+    os.makedirs(directory, mode=0o700, exist_ok=True)
+    _harden(directory, 0o700)
     tmp = f"{path}.{os.getpid()}.tmp"
     with open(tmp, "w", encoding="utf-8") as handle:
         json.dump(record, handle)

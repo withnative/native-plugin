@@ -80,8 +80,12 @@ class PostToolUseTest(unittest.TestCase):
                 "tool_response": {"run_key": "rk-abc"},
             }, state_dir=state_dir)
             proc, _ = run_hook({
-                "session_id": "sess-1", "tool_name": "mcp__native__set_intent",
-                "tool_response": {"work_item_id": "wi-42"},
+                "session_id": "sess-1",
+                "tool_name": "mcp__native__coordination_write",
+                "tool_input": {"operation": "start_work.claim",
+                               "arguments": {"record_id": "wi-42"}},
+                "tool_response": {"structuredContent": {"claimed": True,
+                                                        "record_id": "wi-42"}},
             }, state_dir=state_dir)
             self.assertEqual(proc.returncode, 0)
             record = read_state(state_dir)

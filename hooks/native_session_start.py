@@ -16,12 +16,14 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import native_hook_state as state
 
 MAX_STDIN = 256_000
 MAX_CUE = 800
+MAPPING_TTL_SECONDS = 7 * 24 * 3600
 
 
 def full_cue(run_key: str, anchor: str | None) -> str:
@@ -49,6 +51,14 @@ def recoverable_cue() -> str:
     )[:MAX_CUE]
 
 
+def _fresh(record: dict) -> bool:
+    try:
+        updated = int(record.get("updated_at", 0))
+    except (TypeError, ValueError):
+        return False
+    return (time.time() - updated) <= MAPPING_TTL_SECONDS
+
+
 def main() -> int:
     try:
         raw = sys.stdin.read(MAX_STDIN + 1)
@@ -65,6 +75,8 @@ def main() -> int:
                 root = ""
             if root:
                 record = state.load(state.path_for(root, host, session))
+        if not _fresh(record):
+            record = {}
         run_key = state.bound(record.get("run_key"))
         cue = full_cue(run_key, state.bound(record.get("anchor"))) if run_key else recoverable_cue()
         print(json.dumps(_envelope(host, cue)))

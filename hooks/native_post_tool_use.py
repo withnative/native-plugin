@@ -22,26 +22,32 @@ import native_hook_state as state
 MAX_STDIN = 1_000_000
 RUN_KEY_RE = re.compile(r'"run_key"\s*:\s*"([^"\n]{1,256})"')
 YAML_RUN_KEY_RE = re.compile(r'(?m)^[ \t]*run_key:[ \t]*&run_key[ \t]*"([^"\n]{1,256})"')
-ANCHOR_KEYS = ("work_item_id", "anchor_record_id", "record_id", "anchor")
-INTENT_HINTS = ("set_intent", "start_work", "claim", "get_run_activity", "intent")
+ANCHOR_KEYS = ("record_id", "work_item_id", "anchor_record_id", "anchor")
+COORDINATION_TOOL = "coordination_write"
+CLAIM_OP = "start_work.claim"
+RELEASE_OP = "start_work.release"
 
 
-def _find_key(node: object, key: str, depth: int = 0) -> str | None:
+def _find_value(node: object, key: str, depth: int = 0) -> object:
     if depth > 6:
         return None
     if isinstance(node, dict):
         for name, value in node.items():
-            if name == key and isinstance(value, str) and value:
-                return value[: state.MAX_VALUE_LEN]
-            found = _find_key(value, key, depth + 1)
-            if found:
+            if name == key:
+                return value
+            found = _find_value(value, key, depth + 1)
+            if found is not None:
                 return found
     elif isinstance(node, list):
         for item in node:
-            found = _find_key(item, key, depth + 1)
-            if found:
+            found = _find_value(item, key, depth + 1)
+            if found is not None:
                 return found
     return None
+
+
+def _find_key(node: object, key: str) -> str | None:
+    return state.bound(_find_value(node, key))
 
 
 def _content_texts(response: object) -> list:
@@ -73,6 +79,45 @@ def _extract_run_key(response: object) -> str | None:
     return None
 
 
+def _operation(tool_input: object) -> str | None:
+    if isinstance(tool_input, dict) and isinstance(tool_input.get("operation"), str):
+        return tool_input["operation"]
+    return None
+
+
+def _input_target(tool_input: object) -> str | None:
+    if not isinstance(tool_input, dict):
+        return None
+    args = tool_input.get("arguments")
+    if isinstance(args, dict):
+        target = state.bound(args.get("record_id"))
+        if target:
+            return target
+    return state.bound(tool_input.get("record_id"))
+
+
+def _response_anchor(response: object) -> str | None:
+    for key in ANCHOR_KEYS:
+        anchor = _find_key(response, key)
+        if anchor:
+            return anchor
+    return None
+
+
+def _clear_anchor_if_released(host: str, session: str, target: str | None) -> None:
+    try:
+        root = state.default_root()
+    except ValueError:
+        return
+    path = state.path_for(root, host, session)
+    record = state.load(path)
+    if not record.get("anchor"):
+        return
+    if target is not None and target != record.get("anchor"):
+        return
+    state.remove_keys(path, ("anchor",))
+
+
 def _successful(response: object) -> bool:
     if not isinstance(response, dict):
         return response is not None
@@ -93,18 +138,22 @@ def main() -> int:
         if not tool:
             return 0
         response = payload.get("tool_response")
+        tool_input = payload.get("tool_input")
         host = state.sanitize_host(_flag_host())
         update: dict = {}
         if "bootstrap" in tool and _successful(response):
             run_key = _extract_run_key(response)
             if run_key:
                 update["run_key"] = run_key
-        if any(hint in tool for hint in INTENT_HINTS) and _successful(response):
-            for key in ANCHOR_KEYS:
-                anchor = _find_key(response, key)
-                if anchor:
-                    update["anchor"] = anchor
-                    break
+        if COORDINATION_TOOL in tool:
+            operation = _operation(tool_input)
+            if operation == CLAIM_OP and _successful(response):
+                if _find_value(response, "claimed") is True:
+                    anchor = _response_anchor(response) or _input_target(tool_input)
+                    if anchor:
+                        update["anchor"] = anchor
+            elif operation == RELEASE_OP and _successful(response):
+                _clear_anchor_if_released(host, session, _input_target(tool_input))
         if update:
             update["mcp_observed"] = True
             root = state.default_root()

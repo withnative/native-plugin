@@ -36,8 +36,12 @@ def seed(state_dir, session="sess-9", run_key="rk-kept", anchor="wi-7", host="cl
         "tool_response": {"run_key": run_key}}, host=host, state_dir=state_dir)
     assert proc.returncode == 0
     proc, _ = run_script(POST_TOOL_USE, {
-        "session_id": session, "tool_name": "mcp__native__set_intent",
-        "tool_response": {"work_item_id": anchor}}, host=host, state_dir=state_dir)
+        "session_id": session, "tool_name": "mcp__native__coordination_write",
+        "tool_input": {"operation": "start_work.claim",
+                       "arguments": {"record_id": anchor}},
+        "tool_response": {"structuredContent": {"claimed": True,
+                                                "record_id": anchor}}}, host=host,
+                         state_dir=state_dir)
     assert proc.returncode == 0
 
 
