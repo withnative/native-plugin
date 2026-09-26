@@ -25,11 +25,14 @@ The plugin is intentionally small. It adds:
   Native for ordinary work;
 - the `connect` skill, exposed as `/native:connect`, which handles installation, sign-in,
   and reconnection, so that guidance loads only when it is needed; and
-- a hosted HTTPS MCP connection named `native` at `https://plugin.withnative.ai/mcp`.
+- a hosted HTTPS MCP connection named `native` at `https://plugin.withnative.ai/mcp`;
+- optional local hooks for coding-host compaction that retain the Native run key and
+  prompt a bounded refresh in the next model context.
 
-It does not include a local executable, shell hooks, credentials, copied workspace data, or
-Native server code. Your client manages OAuth sign-in, and the hosted service remains the
-authoritative source for workspace state and current Native guidance.
+It does not include a local MCP server, credentials, copied workspace data, or Native
+server code. The hooks run Python scripts on the coding host after the client trusts
+them. Your client manages OAuth sign-in, and the hosted service remains the authoritative
+source for workspace state and current Native guidance.
 
 ## How agents enter Native
 
@@ -173,13 +176,99 @@ authentication, troubleshooting, and stdio-only clients.
 ## Repository layout
 
 ```text
-plugins/native/          Native plugin manifests, MCP declaration, enter and connect skills
+plugins/native/          Portable Agent Plugins manifests, compat paths, hooks, enter and connect skills
+plugins/native/plugin.json + mcp.json  Canonical packaging (skills/ and MCP auto-discovered)
+plugins/native/.claude-plugin/ + .codex-plugin/ + .mcp.json  Compatibility paths (kept in sync)
+plugins/native/hooks/    Compaction-hook adapters, tests, and host hook configs
 packages/mcp-stdio/      Independently versioned stdio compatibility adapter
 docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
+The canonical `plugins/native/plugin.json` declares the Agent Plugins v1 schema and
+carries portable identity plus the OpenAI `extensions.com.openai` presentation overlay;
+`plugins/native/mcp.json` declares the hosted `native` server with the required
+`streamable-http` transport. The `.claude-plugin/`, `.codex-plugin/`, and `.mcp.json`
+paths remain only for Claude Code and older Codex compatibility and must not diverge
+from the canonical metadata or endpoint; the compatibility `.mcp.json` keeps the
+legacy `http` transport value, which is the known alias of canonical `streamable-http`.
+
+`plugins/native/hooks/` ships the compaction-hook adapters with their tests and two
+host hook configs: the default `hooks/hooks.json` for Claude Code and the separate
+`hooks/codex.hooks.json` referenced from both `extensions.com.openai.hooks` and the
+legacy `.codex-plugin/plugin.json`, per the official rule that the OpenAI extension
+replaces rather than merges with the legacy overlay — both references stay so older
+and newer Codex resolve the same Codex config. PostToolUse matchers use one anchored
+whole-string pattern, `^mcp__(native|plugin_native_native)__`
+`(bootstrap|coordination_write)$`, and the adapter allowlists the same four exact
+host-constructed tool names — `mcp__native__bootstrap`,
+`mcp__native__coordination_write`, and their `mcp__plugin_native_native__*`
+Claude plugin-bundled forms. Anchors are required on both hosts: Claude evaluates
+matchers without regex characters as exact strings but runs patterns containing
+`^$()` as unanchored JavaScript regex, and Codex 0.157.0 ignored an unanchored
+substring probe live, so only `^...$` is exact everywhere. The namespace follows
+install identity — Codex 0.157.0 names a server tool `mcp__<server>__<tool>`
+(observed live: a `native_smoke` server yields `mcp__native_smoke__bootstrap`)
+while a `withnative`-marketplace `native` install yields `mcp__native__bootstrap`,
+matching the production tool name seen in-session; no `withnative` segment was
+observed on the wire, so it is rejected rather than allowlisted on speculation.
+Lookalikes such as `mcp__other_native__bootstrap`,
+`mcp__native_evil__coordination_write`, or `mcp__withnative__bootstrap` are
+rejected by config and script. The adapter captures the bootstrap `run_key` (only
+from explicit `structuredContent` or bootstrap continuation YAML, never from
+arbitrary quoted text — the live Codex MCP result envelope carries exactly
+`content` plus `structuredContent`)
+and the WorkItem anchor. SessionStart on
+compact emits a short re-orientation cue without re-bootstrapping, and SessionEnd
+removes the session record. Hook state stays in the host plugin-data directory, keeps
+only the key and anchor, and expires after 7 days. Installing the plugin does not
+auto-trust its hooks: each host asks for review before they run, and the cue cannot
+restore guidance on its own — no server-side reads are performed.
+
+Actual refresh behavior via the executor-qualified operation
+`guidance_read.manage_instructions.resolve`: after a coding-host
+compact cue with a retained `run_key`, the agent calls that operation
+with the key (never `bootstrap`) and applies guidance only on
+`status:ready` with complete active entries at original user/workspace authority.
+If the connected Native deployment does not expose the operation — older servers
+predate the mapping, so treat an unavailable or unknown operation as a version
+signal, not an error — the agent surfaces that guidance
+cannot be refreshed, continues from visible context or asks, and does not retry;
+invalid guidance resolution likewise surfaces recoverable state with no partial or
+frozen guides. Guidance read stays separate from task-state refresh: a known anchor reads
+the current record plus bounded recent history (labelled current vs recent, never
+claiming changed-since without a cursor), while no anchor falls back to retained
+intent and visible context or asking. Ordinary ChatGPT/Claude chat has no automatic
+hook and follows the same agent-led steps on visible compaction signs.
+
+Limits: if the connected deployment predates the `resolve` mapping, the refresh
+path stays dormant behind the graceful fallback above; there is no automatic
+full guidance restoration; and nothing here lets Native validate an issued
+`run_key` — the server refuses absent/malformed keys without an issued-key
+registry, and only the `resolve` response determines validity. Live-host
+evidence, dated 2026-09-26 and caveated: on Codex 0.157.0, hook `session_id`
+equals the session `thread_id`, the MCP result envelope is `content` plus
+`structuredContent`, and a `withnative`-marketplace install exposes
+`mcp__native__bootstrap` (synthetic servers/data; production OAuth-gated tools
+were not callable, so real bootstrap capture on Codex remains unproven). Codex CLI
+0.157.0 and 0.157.1 did not discover bundled hooks from local-marketplace
+installs: `hooks/list` via app-server returned zero plugin entries (a minimal
+probe plugin included), and no plugin hook executed in `exec` or app-server
+sessions, so the automatic coding-host compact cue is unverified and unavailable
+in those versions outside a TUI trust-review path, which itself exits
+immediately in headless terminals here. A user-level copy of the Codex hook
+entries is not presented as a working path: user-level hooks fired in `exec`
+but not in app-server turns, so the fallback compact cue is likewise unverified
+live. On
+Claude Code 2.1.281, a manual `/compact` accepted the SessionStart
+`additionalContext` cue and `/exit` SessionEnd removed the namespaced state
+file for the same seeded `session_id`, proving lookup/cleanup — but that mapping
+was seeded manually, so real tool-name capture on Claude remains unproven.
+
+The plugin manifests use version `0.1.11`, which adopts portable Agent Plugins v1
+packaging (canonical root `plugin.json`/`mcp.json` with compatibility paths kept in
+sync) and documents the post-compaction refresh via `resolve` with the retained
+`run_key`. `0.1.10` moved installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
 confirming sign-in to the person as soon as it completes, and `0.1.8` allowed an agent
 handling a live OAuth login to receive the callback URL in chat and complete the sign-in.
@@ -194,6 +283,7 @@ Run the repository checks with:
 
 ```sh
 python3 scripts/validate.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s plugins/native/hooks/tests
 npm ci --prefix packages/mcp-stdio
 npm run check --prefix packages/mcp-stdio
 ```

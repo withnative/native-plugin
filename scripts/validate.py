@@ -82,6 +82,14 @@ def validate_license() -> None:
         ADAPTER / "README.md": HTML_NOTICE,
         ADAPTER / "THIRD_PARTY_NOTICES.md": HTML_NOTICE,
         ROOT / "scripts" / "validate.py": f"#!/usr/bin/env python3\n{HASH_NOTICE}",
+        PLUGIN / "hooks" / "native_hook_state.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "native_post_tool_use.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "native_session_end.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "native_session_start.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_anchor_claim.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_hook_configs.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_post_tool_use.py": HASH_NOTICE,
+        PLUGIN / "hooks" / "tests" / "test_session_hooks.py": HASH_NOTICE,
     }
     for path, prefix in notice_prefixes.items():
         require(
@@ -93,9 +101,14 @@ def validate_license() -> None:
 def validate_manifests() -> None:
     codex = load_json(PLUGIN / ".codex-plugin" / "plugin.json")
     claude = load_json(PLUGIN / ".claude-plugin" / "plugin.json")
+    root = load_json(PLUGIN / "plugin.json")
+    require(
+        root.get("$schema") == "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+        "Root plugin.json must declare the Agent Plugins v1 schema",
+    ),
     common = {
         "name": "native",
-        "version": "0.1.10",
+        "version": "0.1.11",
         "description": DESCRIPTION,
         "author": {"name": "Native", "url": "https://www.withnative.ai/"},
         "homepage": "https://personal.withnative.ai/",
@@ -113,7 +126,14 @@ def validate_manifests() -> None:
         "Claude manifest contains unexpected fields",
     )
     interface = codex.get("interface", {})
-    require(set(codex) == set(common) | {"interface"}, "Codex manifest contains unexpected fields")
+    require(
+        set(codex) == set(common) | {"interface", "hooks"},
+        "Codex manifest contains unexpected fields",
+    )
+    require(
+        codex.get("hooks") == "./hooks/codex.hooks.json",
+        "Codex compat hooks must reference the Codex hook config",
+    )
     require(interface.get("displayName") == "Native", "Codex display name must be Native")
     require(
         interface.get("shortDescription") == "Proactively recover relevant durable context.",
@@ -130,14 +150,55 @@ def validate_manifests() -> None:
     require(interface.get("capabilities") == ["Read", "Write"], "Capabilities drifted")
     require(interface.get("websiteURL") == "https://personal.withnative.ai/", "Website drifted")
     require(interface.get("defaultPrompt") == [DEFAULT_PROMPT], "Default prompt drifted")
+    portable_common = {k: v for k, v in common.items() if k not in {"skills", "mcpServers"}}
+    for key, value in portable_common.items():
+        require(root.get(key) == value, f"Root plugin.json has unexpected {key}")
+    require(root.get("license") == "MPL-2.0", "Root plugin.json license drifted")
+    require("skills" not in root, "Portable plugin.json must not declare skills")
+    require("mcpServers" not in root, "Portable plugin.json must not declare mcpServers")
+    overlay = ((root.get("extensions") or {}).get("com.openai") or {})
+    require(overlay.get("interface") == interface, "OpenAI overlay interface diverged")
+    require(
+        overlay.get("hooks") == "./hooks/codex.hooks.json",
+        "OpenAI overlay must reference the Codex hook config",
+    )
+    require(
+        overlay.get("hooks") != "./hooks/hooks.json",
+        "Portable Codex must not reference the Claude default hook config",
+    )
+    require(
+        set(root) == set(portable_common) | {"$schema", "license", "extensions"},
+        "Root plugin.json contains unexpected fields",
+    )
 
 
 def validate_mcp() -> None:
     mcp = load_json(PLUGIN / ".mcp.json")
+    canonical = load_json(PLUGIN / "mcp.json")
     require(
-        mcp == {"mcpServers": {"native": {"type": "http", "url": ENDPOINT}}},
+        canonical.get("$schema") == "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+        "mcp.json must declare the Agent Plugins MCP schema",
+    )
+    expected_servers = {"native": {"type": "streamable-http", "url": ENDPOINT}}
+    require(
+        canonical.get("mcpServers") == expected_servers,
         "MCP declaration must contain only the canonical hosted Native server",
     )
+    require(set(canonical) == {"$schema", "mcpServers"}, "mcp.json contains unexpected fields")
+    legacy_servers = {"native": {"type": "http", "url": ENDPOINT}}
+    require(
+        mcp.get("mcpServers") == legacy_servers,
+        "Compatibility .mcp.json must use the legacy http transport alias",
+    )
+    http_aliases = {"http", "streamable-http"}
+    for name, server in canonical.get("mcpServers", {}).items():
+        legacy = mcp.get("mcpServers", {}).get(name)
+        require(legacy is not None, f"Compatibility .mcp.json is missing server {name!r}")
+        require(legacy.get("url") == server.get("url"), f"Server {name!r} endpoint diverged")
+        require(
+            server.get("type") in http_aliases and legacy.get("type") in http_aliases,
+            f"Server {name!r} transport must be the known http alias pair",
+        )
 
 
 def validate_skill() -> None:
@@ -204,6 +265,13 @@ def validate_skill() -> None:
     )
     for phrase in reentry_contract:
         require(phrase in normalized_skill, f"Skill re-entry contract is missing {phrase!r}")
+    resolve_contract = (
+        "guidance_read.manage_instructions.resolve",
+        "guidance cannot be refreshed",
+        "do not retry",
+    )
+    for phrase in resolve_contract:
+        require(phrase in normalized_skill, f"Skill resolve contract is missing {phrase!r}")
     for phrase in ("mcp login", "callback URL", "--no-browser"):
         require(phrase not in body, f"Connection guidance belongs in the connect skill: {phrase!r}")
 
@@ -257,11 +325,65 @@ def validate_connect_skill() -> None:
         require(phrase in presentation, f"Connect presentation metadata is missing {phrase!r}")
 
 
+def validate_hooks() -> None:
+    hooks_dir = PLUGIN / "hooks"
+    claude_hooks = load_json(hooks_dir / "hooks.json").get("hooks", {})
+    for event in ("PostToolUse", "SessionStart", "SessionEnd"):
+        require(event in claude_hooks, f"Claude hook config is missing {event}")
+        entries = claude_hooks[event]
+        require(isinstance(entries, list) and entries, f"Claude {event} must list hooks")
+        command = entries[0]["hooks"][0]["command"]
+        require("--host claude" in command, f"Claude {event} must scope state to claude")
+        require("${CLAUDE_PLUGIN_ROOT}" in command, f"Claude {event} must use the plugin root")
+    claude_matchers = [entry.get("matcher", "") for entry in claude_hooks["PostToolUse"]]
+    exact_matcher = ("^mcp__(native|plugin_native_native)__"
+                     "(bootstrap|coordination_write)$")
+    require(
+        exact_matcher in claude_matchers,
+        "Claude PostToolUse must use the exact anchored Native matcher",
+    )
+    claude_start = [entry.get("matcher", "") for entry in claude_hooks["SessionStart"]]
+    require("compact" in claude_start, "Claude SessionStart must filter to compact")
+    codex_hooks = load_json(hooks_dir / "codex.hooks.json")
+    events = codex_hooks.get("hooks", {})
+    for event in ("PostToolUse", "SessionStart", "SessionEnd"):
+        require(event in events, f"Codex hook config is missing {event}")
+        command = events[event][0]["hooks"][0]["command"]
+        require("--host codex" in command, f"Codex {event} must scope state to codex")
+        require('"${PLUGIN_ROOT}"' in command, f"Codex {event} must quote the plugin root")
+    codex_matchers = [entry.get("matcher", "") for entry in events["PostToolUse"]]
+    require(
+        exact_matcher in codex_matchers,
+        "Codex PostToolUse must use the exact anchored Native matcher",
+    )
+    matchers = [entry.get("matcher", "") for entry in events["SessionStart"]]
+    require("compact" in matchers, "Codex SessionStart must filter to compact")
+    for script in (
+        "native_hook_state.py",
+        "native_post_tool_use.py",
+        "native_session_end.py",
+        "native_session_start.py",
+    ):
+        require((hooks_dir / script).exists(), f"Hook script {script} must ship in the plugin")
+
+
 def validate_thin_boundary() -> None:
     expected = {
         ".claude-plugin/plugin.json",
         ".codex-plugin/plugin.json",
         ".mcp.json",
+        "mcp.json",
+        "plugin.json",
+        "hooks/hooks.json",
+        "hooks/codex.hooks.json",
+        "hooks/native_hook_state.py",
+        "hooks/native_post_tool_use.py",
+        "hooks/native_session_end.py",
+        "hooks/native_session_start.py",
+        "hooks/tests/test_anchor_claim.py",
+        "hooks/tests/test_hook_configs.py",
+        "hooks/tests/test_post_tool_use.py",
+        "hooks/tests/test_session_hooks.py",
         "skills/enter/SKILL.md",
         "skills/enter/agents/openai.yaml",
         "skills/connect/SKILL.md",
@@ -270,11 +392,11 @@ def validate_thin_boundary() -> None:
     actual = {
         path.relative_to(PLUGIN).as_posix()
         for path in PLUGIN.rglob("*")
-        if path.is_file()
+        if path.is_file() and "__pycache__" not in path.parts
     }
     require(actual == expected, f"Thin plugin file boundary drifted: {sorted(actual ^ expected)}")
     for path in PLUGIN.rglob("*"):
-        if path.is_file():
+        if path.is_file() and "__pycache__" not in path.parts:
             text = path.read_text(encoding="utf-8")
             require("[TODO:" not in text, f"Placeholder remains in {path.relative_to(ROOT)}")
             require("staging.plugin.withnative.ai" not in text, "Plugin must use production URL")
@@ -434,6 +556,7 @@ def main() -> int:
         validate_mcp,
         validate_skill,
         validate_connect_skill,
+        validate_hooks,
         validate_thin_boundary,
         validate_docs,
         validate_adapter,

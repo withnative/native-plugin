@@ -1,0 +1,42 @@
+{
+  "description": "Native compaction hooks: retain the bootstrap run_key and WorkItem anchor across context compaction. PostToolUse captures, SessionStart (compact) re-orients without re-bootstrap, SessionEnd cleans up.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__(native|plugin_native_native)__(bootstrap|coordination_write)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}\"/hooks/native_post_tool_use.py --host codex",
+            "timeout": 30,
+            "statusMessage": "Recording Native session checkpoint"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}\"/hooks/native_session_start.py --host codex",
+            "timeout": 30,
+            "additionalContextLimit": 2000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${PLUGIN_ROOT}\"/hooks/native_session_end.py --host codex",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}
