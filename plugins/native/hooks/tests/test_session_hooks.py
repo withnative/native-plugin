@@ -70,6 +70,16 @@ class SessionStartTest(unittest.TestCase):
             self.assertIn("ready", cue)
             self.assertIn("Do not call bootstrap", cue)
 
+    def test_full_cue_states_refresh_unavailable_path(self):
+        with tempfile.TemporaryDirectory() as state_dir:
+            seed(state_dir)
+            proc, _ = run_script(SESSION_START, {"session_id": "sess-9",
+                                                "source": "compact"}, state_dir=state_dir)
+            self.assertEqual(proc.returncode, 0)
+            cue = json.loads(proc.stdout)["hookSpecificOutput"]["additionalContext"]
+            self.assertIn("guidance_read.manage_instructions.resolve", cue)
+            self.assertIn("cannot be refreshed", cue)
+
     def test_codex_envelope_matches_documented_shape(self):
         with tempfile.TemporaryDirectory() as state_dir:
             seed(state_dir, host="codex")

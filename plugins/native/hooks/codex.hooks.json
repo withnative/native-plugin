@@ -3,7 +3,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "native.*bootstrap|native.*coordination_write",
+        "matcher": "^mcp__(native|plugin_native_native)__(bootstrap|coordination_write)$",
         "hooks": [
           {
             "type": "command",

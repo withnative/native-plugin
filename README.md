@@ -198,10 +198,26 @@ host hook configs: the default `hooks/hooks.json` for Claude Code and the separa
 `hooks/codex.hooks.json` referenced from both `extensions.com.openai.hooks` and the
 legacy `.codex-plugin/plugin.json`, per the official rule that the OpenAI extension
 replaces rather than merges with the legacy overlay — both references stay so older
-and newer Codex resolve the same Codex config. PostToolUse is host-filtered to Native
-`bootstrap`/`coordination_write` tool names and the adapter additionally gates to
-Native-namespaced tools; it captures the bootstrap `run_key` (only from explicit
-`structuredContent` or bootstrap continuation YAML, never from arbitrary quoted text)
+and newer Codex resolve the same Codex config. PostToolUse matchers use one anchored
+whole-string pattern, `^mcp__(native|plugin_native_native)__`
+`(bootstrap|coordination_write)$`, and the adapter allowlists the same four exact
+host-constructed tool names — `mcp__native__bootstrap`,
+`mcp__native__coordination_write`, and their `mcp__plugin_native_native__*`
+Claude plugin-bundled forms. Anchors are required on both hosts: Claude evaluates
+matchers without regex characters as exact strings but runs patterns containing
+`^$()` as unanchored JavaScript regex, and Codex 0.157.0 ignored an unanchored
+substring probe live, so only `^...$` is exact everywhere. The namespace follows
+install identity — Codex 0.157.0 names a server tool `mcp__<server>__<tool>`
+(observed live: a `native_smoke` server yields `mcp__native_smoke__bootstrap`)
+while a `withnative`-marketplace `native` install yields `mcp__native__bootstrap`,
+matching the production tool name seen in-session; no `withnative` segment was
+observed on the wire, so it is rejected rather than allowlisted on speculation.
+Lookalikes such as `mcp__other_native__bootstrap`,
+`mcp__native_evil__coordination_write`, or `mcp__withnative__bootstrap` are
+rejected by config and script. The adapter captures the bootstrap `run_key` (only
+from explicit `structuredContent` or bootstrap continuation YAML, never from
+arbitrary quoted text — the live Codex MCP result envelope carries exactly
+`content` plus `structuredContent`)
 and the WorkItem anchor. SessionStart on
 compact emits a short re-orientation cue without re-bootstrapping, and SessionEnd
 removes the session record. Hook state stays in the host plugin-data directory, keeps
@@ -209,21 +225,36 @@ only the key and anchor, and expires after 7 days. Installing the plugin does no
 auto-trust its hooks: each host asks for review before they run, and the cue cannot
 restore guidance on its own — no server-side reads are performed.
 
-Actual refresh behavior once the server `manage_instructions` action `resolve` is
-delivered: after a coding-host compact cue with a retained `run_key`, the agent calls
-`resolve` with that key (never `bootstrap`) and applies guidance only on
-`status:ready` with complete active entries at original user/workspace authority;
-invalid or unavailable keys surface recoverable state with no partial or frozen
-guides. Guidance read stays separate from task-state refresh: a known anchor reads
+Actual refresh behavior via the executor-qualified operation
+`guidance_read.manage_instructions.resolve`: after a coding-host
+compact cue with a retained `run_key`, the agent calls that operation
+with the key (never `bootstrap`) and applies guidance only on
+`status:ready` with complete active entries at original user/workspace authority.
+If the connected Native deployment does not expose the operation — older servers
+predate the mapping, so treat an unavailable or unknown operation as a version
+signal, not an error — the agent surfaces that guidance
+cannot be refreshed, continues from visible context or asks, and does not retry;
+invalid guidance resolution likewise surfaces recoverable state with no partial or
+frozen guides. Guidance read stays separate from task-state refresh: a known anchor reads
 the current record plus bounded recent history (labelled current vs recent, never
 claiming changed-since without a cursor), while no anchor falls back to retained
 intent and visible context or asking. Ordinary ChatGPT/Claude chat has no automatic
 hook and follows the same agent-led steps on visible compaction signs.
 
-Limits: `resolve` is pending server delivery, so the refresh path is specified but
-not yet live; no live-host `session_id` stability test across a real compaction has
-run; there is no automatic full guidance restoration; and nothing here lets Native
-validate an issued `run_key` — only the `resolve` response determines validity.
+Limits: if the connected deployment predates the `resolve` mapping, the refresh
+path stays dormant behind the graceful fallback above; there is no automatic
+full guidance restoration; and nothing here lets Native validate an issued
+`run_key` — the server refuses absent/malformed keys without an issued-key
+registry, and only the `resolve` response determines validity. Live-host
+evidence, dated 2026-09-26 and caveated: on Codex 0.157.0, hook `session_id`
+equals the session `thread_id`, the MCP result envelope is `content` plus
+`structuredContent`, and a `withnative`-marketplace install exposes
+`mcp__native__bootstrap` (synthetic servers/data; production OAuth-gated tools
+were not callable, so real bootstrap capture on Codex remains unproven). On
+Claude Code 2.1.281, a manual `/compact` accepted the SessionStart
+`additionalContext` cue and `/exit` SessionEnd removed the namespaced state
+file for the same seeded `session_id`, proving lookup/cleanup — but that mapping
+was seeded manually, so real tool-name capture on Claude remains unproven.
 
 The plugin manifests use version `0.1.11`, which adopts portable Agent Plugins v1
 packaging (canonical root `plugin.json`/`mcp.json` with compatibility paths kept in

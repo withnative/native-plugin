@@ -265,6 +265,13 @@ def validate_skill() -> None:
     )
     for phrase in reentry_contract:
         require(phrase in normalized_skill, f"Skill re-entry contract is missing {phrase!r}")
+    resolve_contract = (
+        "guidance_read.manage_instructions.resolve",
+        "guidance cannot be refreshed",
+        "do not retry",
+    )
+    for phrase in resolve_contract:
+        require(phrase in normalized_skill, f"Skill resolve contract is missing {phrase!r}")
     for phrase in ("mcp login", "callback URL", "--no-browser"):
         require(phrase not in body, f"Connection guidance belongs in the connect skill: {phrase!r}")
 
@@ -329,11 +336,14 @@ def validate_hooks() -> None:
         require("--host claude" in command, f"Claude {event} must scope state to claude")
         require("${CLAUDE_PLUGIN_ROOT}" in command, f"Claude {event} must use the plugin root")
     claude_matchers = [entry.get("matcher", "") for entry in claude_hooks["PostToolUse"]]
+    exact_matcher = ("^mcp__(native|plugin_native_native)__"
+                     "(bootstrap|coordination_write)$")
     require(
-        any("bootstrap" in matcher and "coordination_write" in matcher
-            for matcher in claude_matchers),
-        "Claude PostToolUse must filter to Native bootstrap/coordination_write",
+        exact_matcher in claude_matchers,
+        "Claude PostToolUse must use the exact anchored Native matcher",
     )
+    claude_start = [entry.get("matcher", "") for entry in claude_hooks["SessionStart"]]
+    require("compact" in claude_start, "Claude SessionStart must filter to compact")
     codex_hooks = load_json(hooks_dir / "codex.hooks.json")
     events = codex_hooks.get("hooks", {})
     for event in ("PostToolUse", "SessionStart", "SessionEnd"):
@@ -343,9 +353,8 @@ def validate_hooks() -> None:
         require('"${PLUGIN_ROOT}"' in command, f"Codex {event} must quote the plugin root")
     codex_matchers = [entry.get("matcher", "") for entry in events["PostToolUse"]]
     require(
-        any("bootstrap" in matcher and "coordination_write" in matcher
-            for matcher in codex_matchers),
-        "Codex PostToolUse must filter to Native bootstrap/coordination_write",
+        exact_matcher in codex_matchers,
+        "Codex PostToolUse must use the exact anchored Native matcher",
     )
     matchers = [entry.get("matcher", "") for entry in events["SessionStart"]]
     require("compact" in matchers, "Codex SessionStart must filter to compact")

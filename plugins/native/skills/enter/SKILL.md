@@ -29,14 +29,17 @@ claimed). A visible summary may also retain the original key. When the key is
 available, refresh in this order without calling
 `bootstrap` again in the same conversation:
 
-- Resolve guidance first: call the Native `manage_instructions` action `resolve`
+- Resolve guidance first: call `guidance_read.manage_instructions.resolve`
   with the retained `run_key`. Apply guidance only when `instructions.status`
   is `ready` with complete active entries, at its original user/workspace
   authority. Native does not verify that a well-formed run key was issued; the
-  key's continuity comes from the host mapping or visible conversation. If
+  key's continuity comes from the host mapping or visible conversation. If the
+  operation is unavailable or unknown — the server mapping may not have landed
+  yet — surface that guidance cannot be refreshed, continue from visible
+  context or ask the person, and do not retry. If
   guidance resolution is invalid, do not apply partial or frozen guides;
   surface its diagnostics and repair the source when authorized. If the Native
-  tools are unavailable, use `connect`. Neither condition calls for another
+  tools are unavailable, use `connect`. No condition here calls for another
   `bootstrap` in this conversation.
 - Refresh task state separately from guidance: with a known anchor, read the
   current record and bounded recent history; label current versus recent, and

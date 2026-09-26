@@ -106,6 +106,28 @@ class PostToolUseTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0)
         self.assertIsNone(read_state(state_dir))
 
+    def test_rejects_namespace_lookalikes(self):
+        for tool in ("mcp__other_native__bootstrap",
+                     "mcp__native_evil__coordination_write",
+                     "mcp__withnative__bootstrap"):
+            proc, state_dir = run_hook({
+                "session_id": "sess-1",
+                "tool_name": tool,
+                "tool_response": {"structuredContent": {"run_key": "rk-evil"}},
+            })
+            self.assertEqual(proc.returncode, 0)
+            self.assertIsNone(read_state(state_dir), tool)
+
+    def test_rejects_non_string_run_key(self):
+        for bad_key in (12345, {"value": "rk-obj"}, ["rk-list"], None):
+            proc, state_dir = run_hook({
+                "session_id": "sess-1",
+                "tool_name": "mcp__native__bootstrap",
+                "tool_response": {"structuredContent": {"run_key": bad_key}},
+            })
+            self.assertEqual(proc.returncode, 0)
+            self.assertIsNone(read_state(state_dir), repr(bad_key))
+
     def test_ignores_failed_bootstrap(self):
         proc, state_dir = run_hook({
             "session_id": "sess-1",

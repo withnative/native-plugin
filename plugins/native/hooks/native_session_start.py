@@ -30,11 +30,14 @@ def full_cue(run_key: str, anchor: str | None) -> str:
     scope = f" on WorkItem {anchor}" if anchor else ""
     return (
         "Native compaction checkpoint: this conversation already bootstrapped "
-        f"Native before compaction. Reuse run_key {run_key}{scope} on "
-        "subsequent Native calls; call manage_instructions resolve with that "
-        "run_key and apply guidance only when it reports ready. Do not "
-        "call bootstrap again, do not invent workspace state; if the Native "
-        "MCP tools are unavailable, use the packaged connect skill."
+        "Native before compaction. Do not call bootstrap again. Reuse run_key "
+        f"{run_key}{scope} on subsequent Native calls; call "
+        "guidance_read.manage_instructions.resolve "
+        "with that run_key and apply guidance only when it reports ready. If "
+        "resolve is unavailable or unknown, guidance cannot be refreshed: "
+        "continue from visible context or ask; if the Native "
+        "MCP tools are unavailable, use the packaged connect skill. Do not "
+        "invent workspace state."
     )[:MAX_CUE]
 
 

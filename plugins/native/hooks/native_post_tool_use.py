@@ -22,16 +22,27 @@ import native_hook_state as state
 MAX_STDIN = 1_000_000
 YAML_RUN_KEY_RE = re.compile(r'(?m)^[ \t]*run_key:[ \t]*&run_key[ \t]*"([^"\n]{1,256})"')
 ANCHOR_KEYS = ("record_id", "work_item_id", "anchor_record_id", "anchor")
-NATIVE_MARKER = "native"
-BOOTSTRAP_TOOL = "bootstrap"
-COORDINATION_TOOL = "coordination_write"
+# Exact host-constructed MCP tool names only. Live Codex 0.157.0 names a server
+# tool mcp__<server>__<tool> (observed: mcp__native_smoke__bootstrap), so the
+# real Native server yields mcp__native__*; Claude documents the plugin-bundled
+# form mcp__plugin_<plugin>_<server>__<tool>. Anything else — including names
+# that merely contain those segments — is rejected.
+_BOOTSTRAP_TOOLS = frozenset({
+    "mcp__native__bootstrap",
+    "mcp__plugin_native_native__bootstrap",
+})
+_COORDINATION_TOOLS = frozenset({
+    "mcp__native__coordination_write",
+    "mcp__plugin_native_native__coordination_write",
+})
+_NATIVE_TOOLS = _BOOTSTRAP_TOOLS | _COORDINATION_TOOLS
 CLAIM_OP = "start_work.claim"
 RELEASE_OP = "start_work.release"
 
 
 def _is_native_tool(tool: str) -> bool:
-    """Only Native's own namespaced MCP tools; never another server's."""
-    return NATIVE_MARKER in tool and (BOOTSTRAP_TOOL in tool or COORDINATION_TOOL in tool)
+    """Exact allowlist membership; never substring matching."""
+    return tool in _NATIVE_TOOLS
 
 
 def _find_value(node: object, key: str, depth: int = 0) -> object:
@@ -157,11 +168,11 @@ def main() -> int:
         tool_input = payload.get("tool_input")
         host = state.sanitize_host(_flag_host())
         update: dict = {}
-        if BOOTSTRAP_TOOL in tool and _successful(response):
+        if tool in _BOOTSTRAP_TOOLS and _successful(response):
             run_key = _extract_run_key(response)
             if run_key:
                 update["run_key"] = run_key
-        if COORDINATION_TOOL in tool:
+        if tool in _COORDINATION_TOOLS:
             operation = _operation(tool_input)
             if operation == CLAIM_OP and _successful(response):
                 if _find_value(response, "claimed") is True:

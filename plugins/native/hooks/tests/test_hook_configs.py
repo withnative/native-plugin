@@ -31,26 +31,40 @@ def post_tool_use_matcher(config):
     return ""
 
 
+ALLOWED = ("mcp__native__bootstrap",
+           "mcp__native__coordination_write",
+           "mcp__plugin_native_native__bootstrap",
+           "mcp__plugin_native_native__coordination_write")
+REJECTED = ("mcp__other__bootstrap",
+            "mcp__other_native__bootstrap",
+            "mcp__native_evil__coordination_write",
+            "mcp__withnative__bootstrap",
+            "Read", "Bash",
+            "mcp__native__get_run_activity")
+
+
 class HookConfigTest(unittest.TestCase):
     def test_claude_post_tool_use_matches_native_only(self):
         matcher = post_tool_use_matcher(load_config("hooks.json"))
-        self.assertTrue(matcher)
-        for tool in ("mcp__native__bootstrap",
-                      "mcp__plugin_native_native__bootstrap",
-                      "mcp__native__coordination_write"):
+        self.assertTrue(matcher.startswith("^") and matcher.endswith("$"),
+                        "matcher must be anchored whole-string")
+        for tool in ALLOWED:
             self.assertIsNotNone(re.search(matcher, tool), tool)
-        for tool in ("mcp__other__bootstrap", "Read",
-                      "mcp__native__get_run_activity"):
+            self.assertIsNotNone(re.fullmatch(matcher, tool), tool)
+        for tool in REJECTED:
             self.assertIsNone(re.search(matcher, tool), tool)
+            self.assertIsNone(re.fullmatch(matcher, tool), tool)
 
     def test_codex_post_tool_use_matches_native_only(self):
         matcher = post_tool_use_matcher(load_config("codex.hooks.json"))
-        self.assertTrue(matcher)
-        for tool in ("mcp__native__bootstrap",
-                      "mcp__native__coordination_write"):
+        self.assertTrue(matcher.startswith("^") and matcher.endswith("$"),
+                        "matcher must be anchored whole-string")
+        for tool in ALLOWED:
             self.assertIsNotNone(re.search(matcher, tool), tool)
-        for tool in ("mcp__other__bootstrap", "Bash"):
+            self.assertIsNotNone(re.fullmatch(matcher, tool), tool)
+        for tool in REJECTED:
             self.assertIsNone(re.search(matcher, tool), tool)
+            self.assertIsNone(re.fullmatch(matcher, tool), tool)
 
     def test_codex_commands_quote_plugin_root(self):
         config = load_config("codex.hooks.json")
