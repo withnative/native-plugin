@@ -472,6 +472,58 @@ If Native's tools remain unavailable, do not invent workspace state or continue 
 remembered guidance. Report that the connection is unavailable and return to these
 installation checks.
 
+### Claude Code auto mode blocks Native writes
+
+In Claude Code's auto mode, a safety check reviews each tool call before it runs. Native
+is a hosted service, so that check can treat a Native write, such as creating or updating
+a record, as a write to an external system and block it. Reads such as `bootstrap`,
+`search` and `get_record` usually go through, so the first sign is often a failure partway
+through a task. The denial reads like this:
+
+```text
+Permission for this action was denied by the Claude Code auto mode classifier.
+Reason: [External System Writes]. ... To allow this type of action in the future, the
+user can add a permission rule for mcp__plugin_native_native__records_write to their
+settings.
+```
+
+This is a decision by your client, not a Native error: nothing reached Native, and nothing
+needs repairing. The check is model-based, so it may let one write through and block the
+next.
+
+**For a single write**, tell the agent to go ahead in the conversation; it can then try
+the same write again.
+
+**To stop it recurring**, allow Native's ordinary write tools in your Claude Code
+settings. Add this to `~/.claude/settings.json` (or run `/permissions` and add the same
+rules):
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_native_native__records_write",
+      "mcp__plugin_native_native__records_lifecycle",
+      "mcp__plugin_native_native__coordination_write"
+    ]
+  }
+}
+```
+
+The names above are for the plugin's server. If you connected Native directly
+(`claude mcp add ... native ...`), the prefix is `mcp__native__` instead, for example
+`mcp__native__records_write`. In any case, copy the exact tool name from the denial
+message.
+
+These rules cover creating and editing records, lifecycle changes and claims. They
+deliberately leave out `call_executor`, which can reach every Native operation, including
+deletion and access administration. Those calls keep their usual review, and Native still
+applies its own authorisation and preview gates to every call.
+
+Agents: when a Native write is blocked this way, do not retry it straight away or route it
+through another tool to get around the block. Finish what you can without the write, tell
+the person what you were going to record and where, and give them the two options above.
+
 These routes are supported only on the named desktop and CLI surfaces. Browser-only and
 mobile clients must be verified on the specific account and client before support is
 claimed.

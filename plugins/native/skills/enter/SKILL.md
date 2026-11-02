@@ -52,6 +52,14 @@ recovery, and hand-off.
 Activation permits relevant discovery, not unrelated writes. Make writes only when they
 are within the person's request and the current Native guidance permits them.
 
+If the client blocks a Native write before it reaches Native (for example, Claude Code's
+auto mode reports "External System Writes"), that is the person's permission decision, not
+a Native failure. Do not retry it until the person agrees, or route it through another
+tool. Finish what you can,
+say what you would have recorded and where, and offer either a go-ahead in the conversation
+or the permission rule named in the denial (see the plugin installation guide's
+troubleshooting section).
+
 If the Native tools are unavailable, or the person asks to install Native, sign in,
 reconnect, or repair expired authorisation, use the packaged `connect` skill. If it is not
 available either, say that the connection is unavailable and point to
