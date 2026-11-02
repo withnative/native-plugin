@@ -179,7 +179,9 @@ docs/                    Native installation and operations documentation
 scripts/validate.py      Standalone repository contract validation
 ```
 
-The plugin manifests use version `0.1.10`, which moves installation, sign-in, and
+The plugin manifests use version `0.1.11`, which tells agents how to handle a client
+blocking a Native write (such as Claude Code's auto mode) and documents the permission rules
+that stop it recurring. `0.1.10` moved installation, sign-in, and
 reconnection guidance out of `enter` into the separate `connect` skill. `0.1.9` added
 confirming sign-in to the person as soon as it completes, and `0.1.8` allowed an agent
 handling a live OAuth login to receive the callback URL in chat and complete the sign-in.
